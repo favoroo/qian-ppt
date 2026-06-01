@@ -1,0 +1,101 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+*.pyo
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# Data backups
+data/backups/
+data/*.corrupt
+data/*_backup_*.json
+test_*.json
+batch_ops*.json
+ops.json
+component_data.json
+content.html
+content.css
+.slide_cli_session.json
+
+# Project sharing and changelog (local only)
+项目分享-*.md
+Changelog.md
+GEMINI.md
+
+# Images and uploads
+image/*
+!image/README/
+static/uploads/
+slides_image/
+
+# Font files (use CDN instead)
+static/fonts/
+**/*.ttf
+**/*.otf
+**/*.woff
+**/*.woff2
+
+# Trae IDE config (local only)
+.trae/documents/
+.trae/skills/guizang-ppt-skill/
+.trae/skills/html-ppt/
+.trae/skills/slide-editor/documents/
+
+# Workspace backups and generated files
+data/workspaces/*/backups/
+data/workspaces/*/ppt/
+.agents/
+! .agents/skills/
+复件原文件/
+
+# Old export directory
+ppt/
+
+# Logs
+*.log
+
+# Node modules (if any frontend build)
+node_modules/

@@ -1,0 +1,32 @@
+# Git 行结束符配置
+* text=auto eol=lf
+
+# Python 文件
+*.py text eol=lf
+
+# Markdown 文件
+*.md text eol=lf
+
+# HTML 文件
+*.html text eol=lf
+
+# CSS 文件
+*.css text eol=lf
+
+# JavaScript 文件
+*.js text eol=lf
+
+# JSON 文件
+*.json text eol=lf
+
+# 二进制文件
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

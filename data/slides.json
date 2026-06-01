@@ -1,0 +1,2597 @@
+{
+  "_version": 1780041569866,
+  "settings": {
+    "accent": "custom",
+    "accentBright": "#e3ff21",
+    "accentHex": "#C5E803",
+    "accentOn": "#0a0a0a",
+    "accentRgb": "197,232,3",
+    "title": "QIAN-PPT · 高压安全检测新范式"
+  },
+  "slides": [
+    {
+      "animate": "",
+      "backgroundColor": "#0a0a0a",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780022102706-8944",
+          "type": "text",
+          "x": -550,
+          "y": -228,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1780021758014",
+          "type": "text",
+          "x": -764,
+          "y": -337,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-1779971608027",
+          "type": "rect",
+          "x": 846,
+          "y": 27,
+          "width": 89,
+          "height": 67,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0,
+          "fillThemeLink": true
+        },
+        {
+          "id": "elem-1779971642054",
+          "type": "circle",
+          "x": 15,
+          "y": 460,
+          "width": 69,
+          "height": 69,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "elem-1779971648804",
+          "type": "triangle",
+          "x": 864,
+          "y": 463,
+          "width": 71,
+          "height": 63,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "elem-1779974167349",
+          "type": "rect",
+          "x": -117,
+          "y": 34,
+          "width": 63,
+          "height": 8,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "elem-1780021767569",
+          "type": "rect",
+          "x": 365,
+          "y": 285,
+          "width": 114,
+          "height": 10,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "elem-1780036059878-9955",
+          "type": "text",
+          "x": 350,
+          "y": 225,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT",
+          "fontSize": 52,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.16,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "0": {
+                "fill": "#23c7ac"
+              },
+              "1": {
+                "fill": "#23c7ac"
+              },
+              "2": {
+                "fill": "#23c7ac"
+              },
+              "3": {
+                "fill": "#23c7ac"
+              }
+            }
+          }
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {
+        "kicker": "展示",
+        "subtitle": "",
+        "title": "QIAN-PPT"
+      },
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-9ac8e913",
+      "images": [],
+      "layout": "SWISS-COVER-GRADIENT",
+      "theme": "dark"
+    },
+    {
+      "animate": "",
+      "backgroundColor": "transparent",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-b6fd7206",
+          "type": "text",
+          "x": 60,
+          "y": 40,
+          "width": 259,
+          "height": 14,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "LATENT VS DETERMINISTIC — THE DIVIDE",
+          "fontSize": 12,
+          "fill": "#737373",
+          "fontFamily": "JetBrains Mono, monospace",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-7d856b8d",
+          "type": "text",
+          "x": 60,
+          "y": 60,
+          "width": 157,
+          "height": 14,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI 做了那么多 · 我只做三件事",
+          "fontSize": 12,
+          "fill": "#737373",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-e2c393c6",
+          "type": "text",
+          "x": 860,
+          "y": 40,
+          "width": 50,
+          "height": 14,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "18 / 27",
+          "fontSize": 12,
+          "fill": "#737373",
+          "fontFamily": "JetBrains Mono, monospace",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "right",
+          "styles": {}
+        },
+        {
+          "id": "elem-b2372967",
+          "type": "text",
+          "x": 43,
+          "y": 85,
+          "width": 842,
+          "height": 54,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "Latent 留给我 · Deterministic 交给 AI。",
+          "fontSize": 48,
+          "fill": "#0a0a0a",
+          "fontFamily": "Playfair Display, Noto Serif SC, serif",
+          "fontWeight": "300",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {
+            "0": {
+              "7": {
+                "fontWeight": "normal"
+              },
+              "8": {
+                "fontWeight": "normal"
+              },
+              "9": {
+                "fontWeight": "normal"
+              }
+            }
+          }
+        },
+        {
+          "id": "elem-74f1d7b8",
+          "type": "text",
+          "x": 60,
+          "y": 500,
+          "width": 213,
+          "height": 14,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "这是 Garry Tan 划分 AI 任务的核心原则",
+          "fontSize": 12,
+          "fill": "#737373",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-2489bb4b",
+          "type": "text",
+          "x": 760,
+          "y": 500,
+          "width": 130,
+          "height": 14,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "ACT II · FRAMEWORK",
+          "fontSize": 12,
+          "fill": "#737373",
+          "fontFamily": "JetBrains Mono, monospace",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "right",
+          "styles": {}
+        },
+        {
+          "id": "elem-c54b1cc3",
+          "type": "text",
+          "x": 167,
+          "y": 131,
+          "width": 579,
+          "height": 226,
+          "angle": 0,
+          "opacity": 0.05,
+          "locked": false,
+          "text": "Latent",
+          "fontSize": 200,
+          "fill": "#0a0a0a",
+          "fontFamily": "Playfair Display, Noto Serif SC, serif",
+          "fontWeight": "200",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {},
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-1779967212987-827",
+      "images": [],
+      "layout": "SWISS-COVER-GRADIENT",
+      "theme": "light"
+    },
+    {
+      "animate": "",
+      "backgroundColor": "#0a0a0a",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-kicker",
+          "type": "text",
+          "x": 40,
+          "y": 30,
+          "width": 78,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "CHAPTER 01",
+          "fontSize": 13,
+          "fill": "#888888",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-title",
+          "type": "text",
+          "x": 267,
+          "y": 182,
+          "width": 260,
+          "height": 59,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "竞品与痛点",
+          "fontSize": 52,
+          "fill": "#f4f0f0",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "200",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-subtitle",
+          "type": "text",
+          "x": 283,
+          "y": 259,
+          "width": 238,
+          "height": 18,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "COMPETITORS & PAIN POINTS",
+          "fontSize": 16,
+          "fill": "#888888",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "bold",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {},
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-a8ec16db",
+      "images": [],
+      "layout": "SWISS-COVER-DOTS-BOLD",
+      "theme": "dark"
+    },
+    {
+      "animate": "",
+      "backgroundColor": "transparent",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-kicker",
+          "type": "text",
+          "x": 40,
+          "y": 30,
+          "width": 64,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "PRODUCT",
+          "fontSize": 13,
+          "fill": "#999999",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-title",
+          "type": "text",
+          "x": 60,
+          "y": 58,
+          "width": 291,
+          "height": 36,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "QIAN-PPT 产品介绍",
+          "fontSize": 32,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "300",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-lead",
+          "type": "text",
+          "x": 60,
+          "y": 109,
+          "width": 126,
+          "height": 16,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "智能软件，重新定义",
+          "fontSize": 14,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi1-bg",
+          "type": "rect",
+          "x": 60,
+          "y": 155,
+          "width": 260,
+          "height": 90,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#F5F5F5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "kpi1-desc",
+          "type": "text",
+          "x": 76,
+          "y": 208,
+          "width": 78,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "全面覆盖需求",
+          "fontSize": 13,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi3-bg",
+          "type": "rect",
+          "x": 620,
+          "y": 155,
+          "width": 280,
+          "height": 90,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#F5F5F5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "kpi3-num",
+          "type": "text",
+          "x": 636,
+          "y": 168,
+          "width": 75,
+          "height": 36,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "30%",
+          "fontSize": 32,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi3-desc",
+          "type": "text",
+          "x": 636,
+          "y": 208,
+          "width": 78,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "成本优势明显",
+          "fontSize": 13,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi3-label",
+          "type": "text",
+          "x": 720,
+          "y": 172,
+          "width": 72,
+          "height": 20,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "价格降低",
+          "fontSize": 18,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "500",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-1780041352171-1780",
+          "type": "rect",
+          "x": 339,
+          "y": 155,
+          "width": 260,
+          "height": 90,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#F5F5F5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "kpi2-label",
+          "type": "text",
+          "x": 439,
+          "y": 172,
+          "width": 72,
+          "height": 20,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "体验提升",
+          "fontSize": 18,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "500",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi2-num",
+          "type": "text",
+          "x": 355,
+          "y": 168,
+          "width": 75,
+          "height": 36,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "30%",
+          "fontSize": 32,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi2-desc",
+          "type": "text",
+          "x": 355,
+          "y": 208,
+          "width": 52,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "效率飞跃",
+          "fontSize": 13,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-1780040582948-13",
+          "type": "group",
+          "x": 76,
+          "y": 168,
+          "width": 91,
+          "height": 37,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "objects": [
+            {
+              "id": "kpi1-num",
+              "type": "text",
+              "x": -45,
+              "y": -19,
+              "width": 21,
+              "height": 36,
+              "angle": 0,
+              "opacity": 1,
+              "locked": false,
+              "text": "6",
+              "fontSize": 32,
+              "fill": "#C5E803",
+              "fontFamily": "Inter, Noto Sans SC, sans-serif",
+              "fontWeight": "700",
+              "fontStyle": "normal",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "styles": {}
+            },
+            {
+              "id": "kpi1-label",
+              "type": "text",
+              "x": -9,
+              "y": -15,
+              "width": 54,
+              "height": 20,
+              "angle": 0,
+              "opacity": 1,
+              "locked": false,
+              "text": "大功能",
+              "fontSize": 18,
+              "fill": "#0a0a0a",
+              "fontFamily": "Inter, Noto Sans SC, sans-serif",
+              "fontWeight": "500",
+              "fontStyle": "normal",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "styles": {}
+            }
+          ]
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {},
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-7d368244",
+      "images": [],
+      "layout": "SWISS-COVER-CROSS",
+      "theme": "light"
+    },
+    {
+      "animate": "split-statement",
+      "backgroundColor": "#0a0a0a",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-main-quote",
+          "type": "text",
+          "x": 80,
+          "y": 130,
+          "width": 322,
+          "height": 94,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "Build better tools.\n用 AI 重新定义效率",
+          "fontSize": 38,
+          "fill": "#ffffff",
+          "fontFamily": "Inter",
+          "fontWeight": "200",
+          "fontStyle": "normal",
+          "lineHeight": "1.2",
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-accent-line-20",
+          "type": "rect",
+          "x": 80,
+          "y": 115,
+          "width": 60,
+          "height": 3,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "elem-kpis-20",
+          "type": "rect",
+          "x": 500,
+          "y": 120,
+          "width": 420,
+          "height": 200,
+          "angle": 0,
+          "opacity": 0.6,
+          "locked": false,
+          "fill": "transparent",
+          "stroke": "#C5E803",
+          "strokeWidth": 1,
+          "rx": 4,
+          "ry": 4
+        },
+        {
+          "id": "elem-cta-20",
+          "type": "text",
+          "x": 80,
+          "y": 420,
+          "width": 242,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "让每一次交付都更快更好",
+          "fontSize": 22,
+          "fill": "rgba(255,255,255,.6)",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "200",
+          "fontStyle": "normal",
+          "lineHeight": 1.3,
+          "textAlign": "center",
+          "styles": {}
+        },
+        {
+          "id": "elem-bottom-bar-20",
+          "type": "rect",
+          "x": 40,
+          "y": 510,
+          "width": 80,
+          "height": 4,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#C5E803",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 0,
+          "ry": 0
+        },
+        {
+          "id": "kpi1-text",
+          "type": "text",
+          "x": 520,
+          "y": 140,
+          "width": 177,
+          "height": 32,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "体验超过30%",
+          "fontSize": 28,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi2-text",
+          "type": "text",
+          "x": 520,
+          "y": 200,
+          "width": 177,
+          "height": 32,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "价格降低30%",
+          "fontSize": 28,
+          "fill": "#ffffff",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "kpi3-text",
+          "type": "text",
+          "x": 520,
+          "y": 260,
+          "width": 219,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI让专用工具成本极低",
+          "fontSize": 22,
+          "fill": "#aaaaaa",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        }
+      ],
+      "chrome": {
+        "left": "QIAN-PPT · 2026",
+        "right": "20 / 20"
+      },
+      "content": {
+        "left": {
+          "manifesto": [
+            "Build better tools.",
+            "用AI重新定义开发效率"
+          ]
+        },
+        "right": {
+          "takeaway": [
+            "体验超过30%",
+            "价格降低30%",
+            "AI让专用工具成本极低"
+          ]
+        }
+      },
+      "custom_style": {},
+      "foot": {
+        "left": "QIAN-PPT 产品分享",
+        "right": "— 2026 —"
+      },
+      "id": 20,
+      "images": [],
+      "layout": "SWISS-CLOSING-ASCII",
+      "theme": "dark"
+    },
+    {
+      "animate": "",
+      "backgroundColor": "transparent",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-kicker",
+          "type": "text",
+          "x": 40,
+          "y": 32,
+          "width": 93,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI WORKFLOW",
+          "fontSize": 13,
+          "fill": "#999999",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-title",
+          "type": "text",
+          "x": 60,
+          "y": 60,
+          "width": 331,
+          "height": 36,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI 驱动的 5 大提效方案",
+          "fontSize": 32,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "300",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-lead",
+          "type": "text",
+          "x": 60,
+          "y": 105,
+          "width": 391,
+          "height": 16,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "从数据可视化到AI图片生成，全链路提效覆盖开发流程每个环节",
+          "fontSize": 14,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card1-bg",
+          "type": "rect",
+          "x": 40,
+          "y": 145,
+          "width": 168,
+          "height": 370,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f8f8f8",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 6,
+          "ry": 6
+        },
+        {
+          "id": "card1-num",
+          "type": "text",
+          "x": 52,
+          "y": 158,
+          "width": 24,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "01",
+          "fontSize": 22,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card1-title",
+          "type": "text",
+          "x": 52,
+          "y": 190,
+          "width": 75,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "数据可视化",
+          "fontSize": 15,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card1-desc",
+          "type": "text",
+          "x": 52,
+          "y": 218,
+          "width": 94,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "Excel  Web界面",
+          "fontSize": 13,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.6,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card2-bg",
+          "type": "rect",
+          "x": 216,
+          "y": 145,
+          "width": 168,
+          "height": 370,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f8f8f8",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 6,
+          "ry": 6
+        },
+        {
+          "id": "card2-num",
+          "type": "text",
+          "x": 228,
+          "y": 158,
+          "width": 29,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "02",
+          "fontSize": 22,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card2-title",
+          "type": "text",
+          "x": 228,
+          "y": 190,
+          "width": 90,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "流程批量转化",
+          "fontSize": 15,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card2-desc",
+          "type": "text",
+          "x": 228,
+          "y": 218,
+          "width": 130,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "旧流程自动转换新格式",
+          "fontSize": 13,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.6,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card3-bg",
+          "type": "rect",
+          "x": 392,
+          "y": 145,
+          "width": 168,
+          "height": 370,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f8f8f8",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 6,
+          "ry": 6
+        },
+        {
+          "id": "card3-num",
+          "type": "text",
+          "x": 404,
+          "y": 158,
+          "width": 29,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "03",
+          "fontSize": 22,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card3-title",
+          "type": "text",
+          "x": 404,
+          "y": 190,
+          "width": 60,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "流程升级",
+          "fontSize": 15,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card3-desc",
+          "type": "text",
+          "x": 404,
+          "y": 218,
+          "width": 91,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "流程智能化升级",
+          "fontSize": 13,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.6,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card4-bg",
+          "type": "rect",
+          "x": 568,
+          "y": 145,
+          "width": 168,
+          "height": 370,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f8f8f8",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 6,
+          "ry": 6
+        },
+        {
+          "id": "card4-num",
+          "type": "text",
+          "x": 580,
+          "y": 158,
+          "width": 30,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "04",
+          "fontSize": 22,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card4-title",
+          "type": "text",
+          "x": 580,
+          "y": 190,
+          "width": 105,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "多语言批量处理",
+          "fontSize": 15,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card4-desc",
+          "type": "text",
+          "x": 580,
+          "y": 218,
+          "width": 130,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "合并去重拆分翻译入库",
+          "fontSize": 13,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.6,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card5-num",
+          "type": "text",
+          "x": 756,
+          "y": 158,
+          "width": 29,
+          "height": 25,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "05",
+          "fontSize": 22,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card5-title",
+          "type": "text",
+          "x": 756,
+          "y": 190,
+          "width": 75,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI图片生成",
+          "fontSize": 15,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card5-desc",
+          "type": "text",
+          "x": 756,
+          "y": 218,
+          "width": 133,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "风格转换 + 操作示意图",
+          "fontSize": 13,
+          "fill": "#555555",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.6,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "card5-bg",
+          "type": "rect",
+          "x": 744,
+          "y": 145,
+          "width": 176,
+          "height": 370,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "rgba(197,232,3,0.08)",
+          "stroke": "#C5E803",
+          "strokeWidth": 2,
+          "rx": 6,
+          "ry": 6
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {},
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-20cea28e",
+      "images": [],
+      "layout": "",
+      "theme": "light"
+    },
+    {
+      "animate": "",
+      "backgroundColor": "transparent",
+      "bgPatternColor": "",
+      "canvas_elements": [
+        {
+          "id": "elem-kicker",
+          "type": "text",
+          "x": 40,
+          "y": 30,
+          "width": 117,
+          "height": 15,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "MULTI-LANGUAGE",
+          "fontSize": 13,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-title",
+          "type": "text",
+          "x": 60,
+          "y": 70,
+          "width": 320,
+          "height": 36,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "多语言批量拆分与翻译",
+          "fontSize": 32,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-lead",
+          "type": "text",
+          "x": 60,
+          "y": 118,
+          "width": 355,
+          "height": 17,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "合并去重  拆分单句  AI翻译  批量入库，全自动流水线",
+          "fontSize": 15,
+          "fill": "#444444",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-1-bg",
+          "type": "rect",
+          "x": 60,
+          "y": 165,
+          "width": 190,
+          "height": 120,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f5f5f5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "elem-step-1-num",
+          "type": "text",
+          "x": 75,
+          "y": 180,
+          "width": 22,
+          "height": 23,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "01",
+          "fontSize": 20,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-1-title",
+          "type": "text",
+          "x": 75,
+          "y": 210,
+          "width": 64,
+          "height": 18,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "合并去重",
+          "fontSize": 16,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-1-desc",
+          "type": "text",
+          "x": 75,
+          "y": 238,
+          "width": 96,
+          "height": 33,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "自动识别重复内容\n合并相同条目",
+          "fontSize": 12,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-2-bg",
+          "type": "rect",
+          "x": 270,
+          "y": 165,
+          "width": 190,
+          "height": 120,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f5f5f5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "elem-step-2-num",
+          "type": "text",
+          "x": 285,
+          "y": 180,
+          "width": 26,
+          "height": 23,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "02",
+          "fontSize": 20,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-2-title",
+          "type": "text",
+          "x": 285,
+          "y": 210,
+          "width": 64,
+          "height": 18,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "拆分单句",
+          "fontSize": 16,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-2-desc",
+          "type": "text",
+          "x": 285,
+          "y": 238,
+          "width": 84,
+          "height": 33,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "智能拆分长文本\n逐句处理翻译",
+          "fontSize": 12,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-3-bg",
+          "type": "rect",
+          "x": 480,
+          "y": 165,
+          "width": 190,
+          "height": 120,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f5f5f5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "elem-step-3-num",
+          "type": "text",
+          "x": 495,
+          "y": 180,
+          "width": 26,
+          "height": 23,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "03",
+          "fontSize": 20,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-3-title",
+          "type": "text",
+          "x": 495,
+          "y": 210,
+          "width": 48,
+          "height": 18,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI翻译",
+          "fontSize": 16,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-3-desc",
+          "type": "text",
+          "x": 495,
+          "y": 238,
+          "width": 72,
+          "height": 33,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "AI自动翻译\n保持语义准确",
+          "fontSize": 12,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-4-bg",
+          "type": "rect",
+          "x": 710,
+          "y": 165,
+          "width": 190,
+          "height": 120,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "fill": "#f5f5f5",
+          "stroke": "",
+          "strokeWidth": 0,
+          "rx": 8,
+          "ry": 8
+        },
+        {
+          "id": "elem-step-4-num",
+          "type": "text",
+          "x": 725,
+          "y": 180,
+          "width": 27,
+          "height": 23,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "04",
+          "fontSize": 20,
+          "fill": "#C5E803",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "700",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-4-title",
+          "type": "text",
+          "x": 725,
+          "y": 210,
+          "width": 64,
+          "height": 18,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "批量入库",
+          "fontSize": 16,
+          "fill": "#0a0a0a",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "600",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        },
+        {
+          "id": "elem-step-4-desc",
+          "type": "text",
+          "x": 725,
+          "y": 238,
+          "width": 60,
+          "height": 33,
+          "angle": 0,
+          "opacity": 1,
+          "locked": false,
+          "text": "自动化导入\n数据库存储",
+          "fontSize": 12,
+          "fill": "#666666",
+          "fontFamily": "Inter, Noto Sans SC, sans-serif",
+          "fontWeight": "400",
+          "fontStyle": "normal",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "styles": {}
+        }
+      ],
+      "chrome": {
+        "left": "",
+        "right": ""
+      },
+      "content": {},
+      "custom_style": {},
+      "foot": {
+        "center": "",
+        "left": "",
+        "right": ""
+      },
+      "id": "slide-22b1fc77",
+      "images": [],
+      "layout": "",
+      "theme": "dark"
+    }
+  ]
+}
