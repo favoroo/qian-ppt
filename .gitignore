@@ -87,6 +87,12 @@ static/fonts/
 # Workspace backups and generated files
 data/workspaces/*/backups/
 data/workspaces/*/ppt/
+# Runtime workspace data (auto-generated, frequently edited)
+data/workspaces/*/slides.json
+data/workspaces/*/slides.json.lock
+data/workspaces/workspaces.json
+data/slides.json
+data/custom_components.json
 # 只忽略 .agents 的直接子项，保留 .agents/skills/（Git 无法重新包含被父目录整体忽略的内容）
 .agents/*
 !.agents/skills/
