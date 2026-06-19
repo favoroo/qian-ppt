@@ -971,6 +971,19 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
         elem.update({"html": args.html, "css": args.css or ""})
     elif args.type == "3d":
         from three_templates import build_3d_element
+        custom_code = None
+        if args.geometry == "custom":
+            if args.custom_code and args.custom_file:
+                fail("--custom-code 和 --custom-file 不能同时使用")
+            if args.custom_code:
+                custom_code = args.custom_code
+            elif args.custom_file:
+                custom_path = Path(os.path.expandvars(os.path.expanduser(args.custom_file)))
+                if not custom_path.exists():
+                    fail(f"自定义 3D 场景文件不存在: {args.custom_file}")
+                custom_code = custom_path.read_text(encoding="utf-8")
+            if not custom_code:
+                fail("--geometry custom 时必须提供 --custom-code 或 --custom-file")
         three_elem = build_3d_element(
             geometry=args.geometry,
             color=args.fill or "#C5E803",
@@ -982,6 +995,7 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
             background=args.bg,
             width=args.width,
             height=args.height,
+            custom_code=custom_code,
         )
         elem.update(three_elem)
     return elem
@@ -2378,7 +2392,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--html-file", default="", help="从文件读取 HTML，避免 shell 转义。和 --html 互斥")
     p.add_argument("--css-file", default="", help="从文件读取 CSS，避免 shell 转义。和 --css 互斥")
     # 3D 元素参数（--type 3d 时使用）
-    p.add_argument("--geometry", default="cube", choices=["cube", "sphere", "torus", "cylinder", "cone", "icosahedron", "particles"])
+    p.add_argument("--geometry", default="cube", choices=["cube", "sphere", "torus", "cylinder", "cone", "icosahedron", "particles", "custom"])
     p.add_argument("--auto-rotate", dest="auto_rotate", action="store_true", default=True)
     p.add_argument("--no-auto-rotate", dest="auto_rotate", action="store_false")
     p.add_argument("--rotate-speed", type=float, default=0.01)
@@ -2386,6 +2400,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--roughness", type=float, default=0.4)
     p.add_argument("--wireframe", action="store_true", default=False)
     p.add_argument("--bg", default="transparent", help="3D 背景色（transparent 或 #RRGGBB）")
+    p.add_argument("--custom-code", default="", help="自定义 Three.js 场景完整 HTML 代码（仅 --geometry custom 时使用）")
+    p.add_argument("--custom-file", default="", help="从文件读取自定义 Three.js 场景代码（与 --custom-code 互斥）")
     add_auto_place_args(p)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_add)

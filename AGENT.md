@@ -33,6 +33,28 @@ data/workspaces/            — 多工作区数据、备份、导出、截图（
 ppt/                        — 导出目录
 ```
 
+## 开发规范
+
+**通用**
+- 改动前先确认目标工作区：`python .agents/skills/slide-editor/slide_cli.py workspace list`（多工作区避免误改）
+- 遵循现有风格：Python 用 `from __future__ import annotations` + 类型注解 + 中文 docstring/日志；前端文案走 i18n（`static/js/i18n.js`，zh-CN 与 en 同步补齐）
+
+**存储（务必勿绕过）**
+- 写 JSON 统一走原子写 + 文件锁（portalocker）+ 乐观锁；勿直接 `open(..., 'w')` 覆盖 slides.json
+- 乐观锁冲突返回 409，前端按版本号重试，不要静默吞掉
+
+**前端 / 平台**
+- Fabric.js v5.3.x；3D 场景由 `.agents/skills/slide-editor/three_templates.py` 生成
+- Windows PowerShell 5.1 禁用 `&&` / `||` 串联命令（用分号或分行）
+
+### 日志排障
+
+- **位置**：`log/YYYY-MM-DD.log`（按日期命名；单文件超 10MB 轮转为 `YYYY-MM-DD.HHMMSS.log`；保留 30 天；已 gitignored）
+- **排障优先**：遇到 500、保存失败、加载异常、乐观锁冲突等，先读最新日志文件定位原因
+- **新增日志**：`from log_config import get_logger; logger = get_logger('qian-ppt')`
+- **错误带堆栈**：`logger.error("...: %s", e, exc_info=True)`（不要用裸 `print`）
+- **开关**：`LOG_ENABLED=0` 关闭；`LOG_LEVEL=DEBUG` 调级别
+
 ## 相关技能
 
 | 技能 | 用途 |

@@ -141,7 +141,7 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
 
 3D 元素复用 HTML 通道：底层 `type='html'`，通过 `meta.role='3d'` 标识。`html` 字段内嵌 Three.js 场景代码，展示页和编辑器自动执行。
 
-**预设几何体**：`cube`（立方体）、`sphere`（球体）、`torus`（圆环）、`cylinder`（圆柱）、`cone`（圆锥）、`icosahedron`（二十面体）、`particles`（粒子系统）、`galaxy`（星系粒子）、`waves`（动态波浪）、`network`（科技网络）。
+**预设几何体**：`cube`（立方体）、`sphere`（球体）、`torus`（圆环）、`cylinder`（圆柱）、`cone`（圆锥）、`icosahedron`（二十面体）、`particles`（粒子系统）、`galaxy`（星系粒子）、`waves`（动态波浪）、`network`（科技网络）、`custom`（自定义代码）。
 
 **添加 3D 元素**：
 
@@ -161,17 +161,29 @@ python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry ic
 
 **3D 参数**：`--geometry`（几何体）、`--fill`（颜色）、`--auto-rotate`/`--no-auto-rotate`（自动旋转）、`--rotate-speed`（旋转速度 0-0.1）、`--metalness`（金属度 0-1）、`--roughness`（粗糙度 0-1）、`--wireframe`（线框模式）、`--bg`（背景色，transparent 或 #RRGGBB）。
 
-**自定义 3D 场景**：用 `--type html` + `--html-file` 传入自定义 Three.js 代码，并设置 `--meta role=3d`：
+**自定义 3D 元素**：当用户需要非预设几何体、复杂动画、加载外部模型、特殊材质或特定交互效果时，优先使用 `--geometry custom` 传入完整 Three.js 场景代码。自定义代码仍会被标记为 `meta.role='3d'`，享受 3D 元素识别和管理能力。
 
 ```bash
-python .agents/skills/slide-editor/slide_cli.py add "#0" --type html --html-file my_scene.html --meta role=3d --auto-place
+# 直接传入自定义 Three.js 场景完整 HTML 代码
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry custom --custom-code "<div class=\"three-host\">...</div><script>...</script>" --auto-place
+
+# 从文件读取自定义 Three.js 场景代码
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry custom --custom-file my_scene.html --auto-place
 ```
 
-**修改 3D 元素**：用 `update --property html=<新代码>` 替换 3D 场景代码，或修改 `meta.data` 中的参数后重新生成代码。
+自定义代码需要自包含可执行的 Three.js 场景：建议包含容器 `<div>`、`<canvas>` 初始化、`requestAnimationFrame` 动画循环，并复用页面已加载的 `window.THREE`。注意：自定义 3D 元素在展示页仍为自动播放，不支持鼠标/键盘交互；需要交互请在编辑器内测试。
+
+**修改 3D 元素**：用 `update --property html=<新代码>` 直接替换整个 3D 场景代码；也可以修改 `meta.data` 中的参数后重新生成代码（适用于基于模板的元素）。自定义 3D 元素通常直接 `update html` 即可。
 
 **查找 3D 元素**：`find --type 3d` 会自动匹配 `type='html'` 且 `meta.role='3d'` 的元素。
 
 **注意**：3D 元素在展示页为自动播放（自动旋转），不支持鼠标交互。编辑器内可交互。默认尺寸 240×240。
+
+**高级兜底**：如需完全脱离 3D 元数据机制，也可用 `--type html` + `--html-file` 传入自定义 Three.js 代码并设置 `--meta role=3d`：
+
+```bash
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type html --html-file my_scene.html --meta role=3d --auto-place
+```
 
 ## 占位与上传规则
 

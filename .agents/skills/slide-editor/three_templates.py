@@ -553,6 +553,8 @@ def build_3d_element(
     if custom_code:
         html = custom_code
     else:
+        if geometry == "custom":
+            raise ValueError("geometry='custom' 时必须提供 custom_code 参数")
         html = generate_three_js_code(data, uid)
 
     return {

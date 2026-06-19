@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&family=Noto+Serif+SC:wght@200;300;400;500;700;900&family=Playfair+Display:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="/static/icons/material-icons/icons.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="/static/js/fabric.min.js"></script>
   <script src="/static/js/three.min.js"></script>
 <script src="/static/js/i18n.js"></script>
@@ -3112,15 +3111,21 @@ function syncHtmlPreviewLayer() {
       isNew = true;
     }
 
-    item.style.left = `${obj.left || 0}px`;
-    item.style.top = `${obj.top || 0}px`;
-    item.style.width = `${Math.max(1, obj.width || 1)}px`;
-    item.style.height = `${Math.max(1, obj.height || 1)}px`;
-    item.style.opacity = String(obj.opacity ?? 1);
-    item.style.zIndex = String(index + 1);
-
     const scaleX = obj.scaleX || 1;
     const scaleY = obj.scaleY || 1;
+    const baseW = Math.max(1, obj.width || 1);
+    const baseH = Math.max(1, obj.height || 1);
+
+    // 以元素中心为变换原点，修正 left/top 使 HTML 覆盖层的视觉边界
+    // 与 Fabric 对象的缩放后边界对齐，避免 3D/组件元素与选中边框错位
+    item.style.left = `${(obj.left || 0) + baseW * (scaleX - 1) / 2}px`;
+    item.style.top = `${(obj.top || 0) + baseH * (scaleY - 1) / 2}px`;
+    item.style.width = `${baseW}px`;
+    item.style.height = `${baseH}px`;
+    item.style.opacity = String(obj.opacity ?? 1);
+    item.style.zIndex = String(index + 1);
+    item.style.transformOrigin = 'center center';
+
     item.style.transform = `scale(${scaleX}, ${scaleY}) rotate(${obj.angle || 0}deg)`;
 
     const is3D = obj.meta && (obj.meta.role === '3d' || obj.meta.component);
@@ -5222,6 +5227,9 @@ async function loadElementsToCanvas(targetCanvas, elements) {
         htmlBox.css = elem.css || '';
         htmlBox.meta = elem.meta || { role: 'html' };
         htmlBox.excludeFromExport = false;
+        if (htmlBox.meta && htmlBox.meta.role === '3d') {
+          htmlBox.centeredScaling = true;
+        }
         applyObjectLock(htmlBox, !!elem.locked);
         targetCanvas.add(htmlBox);
       } else if (elem.type === 'text') {
@@ -9728,7 +9736,7 @@ function executeContextAction(action) {
     case 'groupElements': groupSelectedElements(); break;
     case 'ungroupElements': ungroupSelectedElement(); break;
     case 'addToComponentLibrary': addToComponentLibrary(); break;
-    case 'preview': window.location.href = '/'; break;
+    case 'preview': previewCurrentSlide(); break;
   }
 }
 
@@ -10716,7 +10724,8 @@ function add3DElement(presetName) {
     cornerSize: 8,
     padding: 0,
     hasBorders: true,
-    hasControls: true
+    hasControls: true,
+    centeredScaling: true
   });
   htmlBox.id = 'elem-' + Date.now() + '-' + Math.round(Math.random() * 10000);
   htmlBox.elementType = 'html';
@@ -10759,7 +10768,8 @@ function add3DCustomElement(code) {
     cornerSize: 8,
     padding: 0,
     hasBorders: true,
-    hasControls: true
+    hasControls: true,
+    centeredScaling: true
   });
   htmlBox.id = 'elem-' + Date.now() + '-' + Math.round(Math.random() * 10000);
   htmlBox.elementType = 'html';

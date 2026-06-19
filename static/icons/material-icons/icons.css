@@ -1,5 +1,11 @@
-/* Material Symbols Rounded 字体由 Google Fonts CDN 提供（见 editor.html / presentation.html）。
-   本文件仅保留 .material-symbols-rounded 类样式，避免本地 woff2 缺失导致图标不显示。 */
+/* Material Symbols Rounded 本地图标字体 */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block; /* 字体就绪前隐藏图标文本，避免刷新时显示 ligature 文字 */
+  src: url('MaterialSymbolsRounded.ttf') format('truetype');
+}
 
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';
