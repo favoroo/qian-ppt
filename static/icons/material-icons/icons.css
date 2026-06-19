@@ -1,9 +1,5 @@
-@font-face {
-  font-family: 'Material Symbols Rounded';
-  font-style: normal;
-  font-weight: 400;
-  src: url('MaterialSymbolsRounded.woff2') format('woff2');
-}
+/* Material Symbols Rounded 字体由 Google Fonts CDN 提供（见 editor.html / presentation.html）。
+   本文件仅保留 .material-symbols-rounded 类样式，避免本地 woff2 缺失导致图标不显示。 */
 
 .material-symbols-rounded {
   font-family: 'Material Symbols Rounded';

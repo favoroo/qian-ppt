@@ -87,8 +87,9 @@ static/fonts/
 # Workspace backups and generated files
 data/workspaces/*/backups/
 data/workspaces/*/ppt/
-.agents/
-! .agents/skills/
+# 只忽略 .agents 的直接子项，保留 .agents/skills/（Git 无法重新包含被父目录整体忽略的内容）
+.agents/*
+!.agents/skills/
 复件原文件/
 
 # Old export directory

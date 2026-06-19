@@ -1,0 +1,144 @@
+{
+  "default_data": {
+    "metric-card": {
+      "label": "关键指标",
+      "value": "42",
+      "unit": "%",
+      "caption": "核心变化一眼读完",
+      "accent": "#C5E803"
+    },
+    "grid-card": {
+      "index": "01",
+      "label": "网格卡片标题",
+      "body": "卡片正文描述内容，可以自由调整。",
+      "accent": "#C5E803"
+    },
+    "grid-list": {
+      "title": "网格列表",
+      "columns": 2,
+      "accent": "#C5E803",
+      "items": [
+        {"label": "结构化", "body": "信息按固定网格组织"},
+        {"label": "可扫描", "body": "标题、编号和正文层级清晰"},
+        {"label": "易扩展", "body": "传入 JSON 即可生成列表"}
+      ]
+    },
+    "circular-flow": {
+      "title": "闭环流程",
+      "accent": "#C5E803",
+      "items": [
+        {"label": "输入", "body": "收集素材"},
+        {"label": "处理", "body": "生成结构"},
+        {"label": "验证", "body": "校验版面"},
+        {"label": "输出", "body": "导出预览"}
+      ]
+    },
+    "compare-columns": {
+      "title": "双栏对比",
+      "accent": "#C5E803",
+      "left": {"kicker": "A", "label": "Before", "body": "旧方式的主要限制"},
+      "right": {"kicker": "B", "label": "After", "body": "新方式的关键改进"}
+    },
+    "kpi-strip": {
+      "accent": "#C5E803",
+      "metrics": [
+        {"label": "效率", "value": "3.2", "unit": "x", "caption": "端到端提速"},
+        {"label": "成本", "value": "-28", "unit": "%", "caption": "单次交付下降"},
+        {"label": "质量", "value": "96", "unit": "%", "caption": "校验通过率"}
+      ]
+    },
+    "screenshot-frame": {
+      "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"><rect width=\"100%\" height=\"100%\" fill=\"%23f3f3ee\"/><rect x=\"20\" y=\"20\" width=\"360\" height=\"260\" rx=\"4\" fill=\"none\" stroke=\"%23d9d9d2\" stroke-width=\"2\" stroke-dasharray=\"8 6\"/><path d=\"M170 130 h60 v40 h-60 z M180 130 l10 -10 h20 l10 10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\" stroke-linejoin=\"round\"/><circle cx=\"200\" cy=\"150\" r=\"10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\"/><text x=\"50%\" y=\"195\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"%2366665f\" font-weight=\"500\">IMAGE PLACEHOLDER</text></svg>",
+      "title": "Preview",
+      "caption": "截图美化框",
+      "accent": "#C5E803"
+    },
+    "guizang-typography": {
+      "text": "这是 Guizang 风格排版组件",
+      "role": "body",
+      "color": "#0a0a0b"
+    },
+    "guizang-callout": {
+      "quote": "极简是不堆砌，是有克制的表达与高精度的对齐。",
+      "cite": "《Guizang 设计手册》",
+      "accent": "#0a0a0b"
+    },
+    "guizang-stat-card": {
+      "label": "Duration",
+      "value": "64天",
+      "caption": "从 0 到现在",
+      "accent": "#C5E803"
+    },
+    "guizang-stat-grid": {
+      "columns": 3,
+      "accent": "#C5E803",
+      "items": [
+        {"label": "Duration", "value": "64天", "caption": "从 0 到现在"},
+        {"label": "Revenue", "value": "1.2M", "caption": "年度营收"},
+        {"label": "Growth", "value": "340%", "caption": "同比增长"}
+      ]
+    },
+    "guizang-pillar-card": {
+      "icon": "01",
+      "label": "支柱标题",
+      "description": "支柱细节描述内容。",
+      "accent": "#C5E803"
+    },
+    "guizang-pillar": {
+      "columns": 3,
+      "accent": "#C5E803",
+      "items": [
+        {"icon": "01", "label": "判断力", "description": "决策和方向的权威"},
+        {"icon": "02", "label": "执行力", "description": "高效交付的能力"},
+        {"icon": "03", "label": "复盘力", "description": "持续优化的闭环"}
+      ]
+    },
+    "guizang-rowline": {
+      "columns": 3,
+      "items": [
+        {"keyword": "CLAUDE.md", "value": "你该怎么做事", "tag": "EMPLOYEE HANDBOOK"},
+        {"keyword": "SKILL.md", "value": "行为规则与工作偏好", "tag": "KNOWLEDGE"},
+        {"keyword": "RULES.md", "value": "护栏文件", "tag": "GUARDRAILS"}
+      ]
+    },
+    "guizang-figure": {
+      "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"><rect width=\"100%\" height=\"100%\" fill=\"%23f3f3ee\"/><rect x=\"20\" y=\"20\" width=\"360\" height=\"260\" rx=\"4\" fill=\"none\" stroke=\"%23d9d9d2\" stroke-width=\"2\" stroke-dasharray=\"8 6\"/><path d=\"M170 130 h60 v40 h-60 z M180 130 l10 -10 h20 l10 10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\" stroke-linejoin=\"round\"/><circle cx=\"200\" cy=\"150\" r=\"10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\"/><text x=\"50%\" y=\"195\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"%2366665f\" font-weight=\"500\">IMAGE PLACEHOLDER</text></svg>",
+      "caption": "图片说明",
+      "platform": "Weibo",
+      "value": "289K",
+      "aspectRatio": "16:10"
+    },
+    "guizang-platform": {
+      "sub": "Weibo",
+      "name": "微博",
+      "value": "289K",
+      "caption": "社交媒体粉丝量",
+      "accent": "#C5E803"
+    },
+    "guizang-ghost": {
+      "text": "BUT",
+      "position": "top-right",
+      "opacity": 0.06,
+      "fontStyle": "italic"
+    }
+  },
+  "default_sizes": {
+    "metric-card": {"width": 240, "height": 180},
+    "grid-card": {"width": 260, "height": 180},
+    "grid-list": {"width": 840, "height": 260},
+    "circular-flow": {"width": 400, "height": 400},
+    "compare-columns": {"width": 840, "height": 250},
+    "kpi-strip": {"width": 840, "height": 88},
+    "screenshot-frame": {"width": 480, "height": 300},
+    "guizang-typography": {"width": 400, "height": 100},
+    "guizang-callout": {"width": 400, "height": 150},
+    "guizang-stat-card": {"width": 240, "height": 160},
+    "guizang-stat-grid": {"width": 840, "height": 160},
+    "guizang-pillar-card": {"width": 260, "height": 220},
+    "guizang-pillar": {"width": 840, "height": 220},
+    "guizang-rowline": {"width": 600, "height": 250},
+    "guizang-figure": {"width": 400, "height": 280},
+    "guizang-platform": {"width": 240, "height": 180},
+    "guizang-ghost": {"width": 600, "height": 200}
+  }
+}

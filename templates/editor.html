@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&family=Noto+Serif+SC:wght@200;300;400;500;700;900&family=Playfair+Display:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="/static/icons/material-icons/icons.css" rel="stylesheet">
-<link rel="preload" href="/static/icons/material-icons/MaterialSymbolsRounded.woff2" as="font" type="font/woff2" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="/static/js/fabric.min.js"></script>
 <script src="/static/js/i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -9148,7 +9148,8 @@ const ctxIcons = {
   center: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/></svg>',
   group: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>',
   ungroup: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><line x1="14" y1="14" x2="22" y2="22"/><line x1="22" y1="14" x2="14" y2="22"/></svg>',
-  addToComponents: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>'
+  addToComponents: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
+  preview: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
 };
 
 function buildCtxItem(action, label, icon, shortcut, extraClass) {
@@ -9174,7 +9175,9 @@ function getBlankMenuItems() {
     buildCtxItem('addCircle', t('context.addCircle'), ctxIcons.circle, '', ''),
     buildCtxItem('addTriangle', t('context.addTriangle'), ctxIcons.triangle, '', ''),
     buildCtxSeparator(),
-    buildCtxItem('selectAll', t('context.selectAll'), ctxIcons.selectAll, 'Ctrl+A', '')
+    buildCtxItem('selectAll', t('context.selectAll'), ctxIcons.selectAll, 'Ctrl+A', ''),
+    buildCtxSeparator(),
+    buildCtxItem('preview', t('presentation.preview'), ctxIcons.preview, '', '')
   ].join('');
 }
 
@@ -9200,7 +9203,9 @@ function getElementMenuItems(locked, isGroup, isMultiSelect) {
     buildCtxItem('sendBackwards', t('context.sendBackwards'), ctxIcons.sendBackwards, '', ''),
     buildCtxItem('centerOnCanvas', t('context.center'), ctxIcons.center, '', ''),
     buildCtxSeparator(),
-    buildCtxItem('addToComponentLibrary', t('context.addToComponents'), ctxIcons.addToComponents, '', '')
+    buildCtxItem('addToComponentLibrary', t('context.addToComponents'), ctxIcons.addToComponents, '', ''),
+    buildCtxSeparator(),
+    buildCtxItem('preview', t('presentation.preview'), ctxIcons.preview, '', '')
   );
   return items.join('');
 }
@@ -9269,6 +9274,7 @@ function executeContextAction(action) {
     case 'groupElements': groupSelectedElements(); break;
     case 'ungroupElements': ungroupSelectedElement(); break;
     case 'addToComponentLibrary': addToComponentLibrary(); break;
+    case 'preview': window.location.href = '/'; break;
   }
 }
 

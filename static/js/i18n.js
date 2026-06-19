@@ -152,6 +152,8 @@
       'presentation.toggleStatic': '切换为静态模式',
       'presentation.toggleDynamic': '切换为动态模式',
       'presentation.overview': '展示全部幻灯片',
+      'presentation.editSlide': '进入编辑器',
+      'presentation.preview': '进入预览模式',
       'presentation.canvasLabel': '幻灯片画布',
 
       'props.type': '类型',
@@ -507,6 +509,8 @@
       'presentation.toggleStatic': 'Switch to static mode',
       'presentation.toggleDynamic': 'Switch to dynamic mode',
       'presentation.overview': 'Show all slides',
+      'presentation.editSlide': 'Enter Editor',
+      'presentation.preview': 'Enter Preview Mode',
       'presentation.canvasLabel': 'Slide canvas',
 
       'props.type': 'Type',

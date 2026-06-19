@@ -5,11 +5,33 @@ import time
 import uuid
 import copy
 import re
+import tempfile
+import logging
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, has_request_context
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for, has_request_context, abort
 from werkzeug.utils import secure_filename
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# 跨平台文件锁（可选依赖，缺失时降级为无锁并告警）
+try:
+    import portalocker
+    HAS_FILE_LOCK = True
+except ImportError:
+    HAS_FILE_LOCK = False
+
+# 响应压缩（可选依赖，缺失时降级为不压缩）
+try:
+    from flask_compress import Compress
+    HAS_COMPRESS = True
+except ImportError:
+    HAS_COMPRESS = False
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
@@ -19,6 +41,22 @@ app.config['WORKSPACES_FOLDER'] = os.path.join('data', 'workspaces')
 app.config['WORKSPACES_META_FILE'] = os.path.join(app.config['WORKSPACES_FOLDER'], 'workspaces.json')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm'}
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60 * 60 * 24 * 7  # 静态资源 7 天缓存
+
+# 日志配置
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+)
+logger = logging.getLogger('qian-ppt')
+
+if not HAS_FILE_LOCK:
+    logger.warning("portalocker 未安装，文件锁降级为无锁模式，并发写入可能丢失更新。建议 pip install portalocker")
+
+if HAS_COMPRESS:
+    Compress(app)
+else:
+    logger.info("flask-compress 未安装，大 JSON 响应未启用 gzip。建议 pip install flask-compress")
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['BACKUP_FOLDER'], exist_ok=True)
@@ -27,17 +65,66 @@ os.makedirs(app.config['WORKSPACES_FOLDER'], exist_ok=True)
 
 DEFAULT_WORKSPACE_ID = 'default'
 WORKSPACE_ID_RE = re.compile(r'^[A-Za-z0-9_-]+$')
+BACKUP_KEEP_COUNT = 10
 
 # Slide editor 路径配置（可根据实际目录结构调整）
 SLIDE_EDITOR_PATH = os.path.join('.agents', 'skills', 'slide-editor')
 
 
-@app.errorhandler(ValueError)
-def handle_value_error(error):
-    """把工作区等参数校验失败返回为 400。"""
-    if str(error) == "Invalid workspace id":
-        return jsonify({"error": "Invalid workspace id"}), 400
-    raise error
+class WorkspaceValidationError(ValueError):
+    """工作区参数校验失败专用异常。"""
+
+
+class VersionConflictError(Exception):
+    """乐观锁版本冲突异常，返回 409 + 当前数据。"""
+    def __init__(self, current_version, current_data):
+        super().__init__("version_conflict")
+        self.current_version = current_version
+        self.current_data = current_data
+
+
+@app.errorhandler(WorkspaceValidationError)
+def handle_workspace_validation_error(error):
+    """把工作区参数校验失败返回为 400。"""
+    return jsonify({"error": "Invalid workspace id"}), 400
+
+
+@app.errorhandler(VersionConflictError)
+def handle_version_conflict(error):
+    """乐观锁冲突：返回 409 + 当前版本与数据，供前端刷新合并。"""
+    return jsonify({
+        "error": "version_conflict",
+        "message": "数据已被其他会话修改，请刷新后重试",
+        "_version": error.current_version,
+        "data": error.current_data
+    }), 409
+
+
+@app.after_request
+def add_security_headers(response):
+    """补充基础安全响应头。"""
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    return response
+
+
+# Token 认证（可选）：设置 QIAN_PPT_TOKEN 后，/api/* 写操作需带 X-Auth-Token 头
+AUTH_TOKEN = os.environ.get('QIAN_PPT_TOKEN', '')
+WRITE_METHODS = {'POST', 'PUT', 'DELETE', 'PATCH'}
+
+
+@app.before_request
+def enforce_token_auth():
+    """对 /api/* 写操作校验 Token；未设置 QIAN_PPT_TOKEN 时跳过（本地零配置）。"""
+    if not AUTH_TOKEN:
+        return None
+    if not request.path.startswith('/api/'):
+        return None
+    if request.method not in WRITE_METHODS:
+        return None
+    if request.headers.get('X-Auth-Token', '') == AUTH_TOKEN:
+        return None
+    return jsonify({"error": "unauthorized", "message": "缺少或错误的 X-Auth-Token"}), 401
 
 
 def default_slides_data():
@@ -65,7 +152,7 @@ def normalize_workspace_id(workspace_id=None):
     if not raw:
         raw = DEFAULT_WORKSPACE_ID
     if not validate_workspace_id(raw):
-        raise ValueError("Invalid workspace id")
+        raise WorkspaceValidationError("Invalid workspace id")
     return raw
 
 
@@ -114,7 +201,7 @@ def read_workspaces_meta():
             if isinstance(data, dict) and isinstance(data.get('workspaces'), dict):
                 return data
         except Exception as e:
-            print(f"Error loading workspaces metadata: {e}")
+            logger.error("加载工作区元数据失败: %s", e)
     return {"workspaces": {}}
 
 
@@ -155,22 +242,30 @@ def ensure_default_workspace():
 
 
 def list_workspaces():
-    """列出所有工作区。"""
+    """列出所有工作区。只读不写，避免每次列出都触发元数据写放大。
+
+    未登记的目录以"孤儿"形式展示（标记 unregistered），由 create/rename/delete/save 时才写元数据。
+    """
     ensure_default_workspace()
     meta = read_workspaces_meta()
-    workspaces = meta.setdefault('workspaces', {})
-    # 目录存在但元数据缺失时自动补齐，便于手工复制工作区目录。
-    for item in os.listdir(app.config['WORKSPACES_FOLDER']):
-        item_path = os.path.join(app.config['WORKSPACES_FOLDER'], item)
-        if os.path.isdir(item_path) and validate_workspace_id(item) and item not in workspaces:
-            workspaces[item] = {
-                "id": item,
-                "name": "默认工作区" if item == DEFAULT_WORKSPACE_ID else item,
-                "createdAt": datetime.now().isoformat(timespec='seconds'),
-                "updatedAt": datetime.now().isoformat(timespec='seconds')
-            }
-    write_workspaces_meta(meta)
-    rows = list(workspaces.values())
+    registered = meta.get('workspaces', {})
+    rows = list(registered.values())
+    # 收集已登记的 id，用于检测孤儿目录
+    registered_ids = {r.get('id') for r in rows}
+    # 目录存在但元数据缺失时，作为只读孤儿展示，不自动写元数据
+    try:
+        for item in os.listdir(app.config['WORKSPACES_FOLDER']):
+            item_path = os.path.join(app.config['WORKSPACES_FOLDER'], item)
+            if os.path.isdir(item_path) and validate_workspace_id(item) and item not in registered_ids:
+                rows.append({
+                    "id": item,
+                    "name": item,
+                    "createdAt": "",
+                    "updatedAt": "",
+                    "unregistered": True
+                })
+    except OSError:
+        pass
     rows.sort(key=lambda x: (x.get('id') != DEFAULT_WORKSPACE_ID, x.get('name', x.get('id', ''))))
     return rows
 
@@ -199,8 +294,8 @@ def load_slides(workspace_id=None):
             with open(data_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except json.JSONDecodeError as e:
-            print(f"Error loading slides.json in workspace {wid}: {e}. Trying to restore from backups...")
-            # Try to load the most recent valid backup
+            logger.error("加载工作区 %s 的 slides.json 失败: %s。尝试从备份恢复...", wid, e)
+            # 尝试从最近的合法备份恢复
             if os.path.exists(backup_folder):
                 backups = sorted([f for f in os.listdir(backup_folder) if f.startswith('slides_')], reverse=True)
                 for backup in backups:
@@ -208,52 +303,141 @@ def load_slides(workspace_id=None):
                     try:
                         with open(backup_path, 'r', encoding='utf-8') as bf:
                             data = json.load(bf)
-                        # Overwrite the corrupted DATA_FILE with the valid backup data
-                        with open(data_file, 'w', encoding='utf-8') as wf:
-                            json.dump(data, wf, ensure_ascii=False, indent=2)
-                        print(f"Successfully restored slides.json from valid backup: {backup}")
+                        # 用合法备份覆盖损坏的 data_file（原子写）
+                        _atomic_write_json(data_file, data)
+                        logger.info("已从备份 %s 恢复 slides.json", backup)
                         return data
                     except Exception as be:
-                        print(f"Failed to load backup {backup}: {be}")
-            print("No valid backups found or failed to restore.")
+                        logger.warning("加载备份 %s 失败: %s", backup, be)
+            logger.error("未找到可用备份，返回空数据。")
     return default_slides_data()
 
 
-def save_slides(data, workspace_id=None):
+def _read_version_fast(data_file):
+    """快速读取 _version，只读文件头部用正则匹配，避免完整解析大 JSON。"""
+    if not os.path.exists(data_file):
+        return 0
+    try:
+        with open(data_file, 'r', encoding='utf-8') as f:
+            head = f.read(2048)
+        match = re.search(r'"_version"\s*:\s*(\d+)', head)
+        if match:
+            return int(match.group(1))
+    except Exception:
+        pass
+    return 0
+
+
+def _next_version(data_file):
+    """生成单调递增的版本号，避免同毫秒碰撞。"""
+    current = _read_version_fast(data_file)
+    now_ms = int(time.time() * 1000)
+    return max(now_ms, current + 1)
+
+
+def _atomic_write_json(target_path, data):
+    """原子写 JSON：写临时文件后 os.replace 替换，避免半截损坏。"""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(target_path), suffix='.tmp', prefix='.save_')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, target_path)
+    except Exception:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+
+def _prune_backups(backup_folder, keep=BACKUP_KEEP_COUNT):
+    """只保留最近 N 个备份。"""
+    try:
+        backups = sorted([f for f in os.listdir(backup_folder) if f.startswith('slides_')])
+        for old in backups[:-keep]:
+            try:
+                os.remove(os.path.join(backup_folder, old))
+            except OSError as e:
+                logger.warning("删除旧备份 %s 失败: %s", old, e)
+    except OSError:
+        pass
+
+
+def save_slides(data, workspace_id=None, expected_version=None):
+    """保存幻灯片数据。
+
+    - expected_version: 乐观锁，若不为 None 且与磁盘当前版本不一致则抛 VersionConflictError(409)。
+    - 采用文件锁 + 原子写，防止并发丢失更新与崩溃损坏。
+    - 备份直接 copy2（不再先 json.load 验证，减少一次全量读）；合法性校验由 load_slides 恢复路径兜底。
+    """
     wid = ensure_workspace(normalize_workspace_id(workspace_id))
     data_file = workspace_data_file(wid)
     backup_folder = workspace_backup_folder(wid)
-    # 更新版本号
-    data['_version'] = int(time.time() * 1000)
+    lock_file = data_file + '.lock'
 
-    # 备份
-    if os.path.exists(data_file):
-        # Only backup if current slides.json is valid JSON to prevent backup pollution
-        is_valid = False
-        try:
-            with open(data_file, 'r', encoding='utf-8') as rf:
-                json.load(rf)
-            is_valid = True
-        except Exception:
-            pass
+    with open(lock_file, 'w') as lf:
+        if HAS_FILE_LOCK:
+            try:
+                portalocker.lock(lf, portalocker.LOCK_EX)
+            except Exception as e:
+                logger.warning("获取文件锁失败，降级无锁写入: %s", e)
 
-        if is_valid:
-            ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        # 乐观锁校验（在锁内，避免 TOCTOU）
+        if expected_version is not None:
+            current = _read_version_fast(data_file)
+            if current != expected_version:
+                # 冲突：返回当前数据供前端合并
+                try:
+                    with open(data_file, 'r', encoding='utf-8') as f:
+                        current_data = json.load(f)
+                except Exception:
+                    current_data = default_slides_data()
+                raise VersionConflictError(current, current_data)
+
+        # 更新版本号（单调递增）
+        data['_version'] = _next_version(data_file)
+
+        # 备份（直接 copy2，不再先 json.load 验证）
+        if os.path.exists(data_file):
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
             backup_path = os.path.join(backup_folder, f'slides_{ts}.json')
-            shutil.copy2(data_file, backup_path)
-            # 只保留最近 10 个备份
-            backups = sorted([f for f in os.listdir(backup_folder) if f.startswith('slides_')])
-            for old in backups[:-10]:
-                os.remove(os.path.join(backup_folder, old))
+            try:
+                shutil.copy2(data_file, backup_path)
+            except OSError as e:
+                logger.warning("备份失败: %s", e)
+            _prune_backups(backup_folder)
 
-    with open(data_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        # 原子写
+        _atomic_write_json(data_file, data)
 
+    # 更新工作区元数据 updatedAt
     meta = read_workspaces_meta()
     if wid in meta.get('workspaces', {}):
         meta['workspaces'][wid]['updatedAt'] = datetime.now().isoformat(timespec='seconds')
         write_workspaces_meta(meta)
     return data['_version']
+
+
+def _extract_base_version():
+    """从当前请求 JSON 体中提取 base_version（乐观锁），无则返回 None（兼容老前端）。
+
+    依次查找 base_version / _base_version / _version 字段。
+    对 POST /api/slides（body 即完整 deck，含 _version）自动生效；
+    对元素级路由，前端需显式发送 base_version。
+    """
+    if not has_request_context():
+        return None
+    try:
+        body = request.get_json(silent=True) or {}
+        if isinstance(body, dict):
+            for key in ('base_version', '_base_version', '_version'):
+                bv = body.get(key)
+                if bv is not None:
+                    try:
+                        return int(bv)
+                    except (TypeError, ValueError):
+                        continue
+    except Exception:
+        pass
+    return None
 
 
 def make_export_data_json(data):
@@ -605,7 +789,7 @@ def save_all_slides():
         return jsonify({"error": "Request body must be a JSON object"}), 400
     data.setdefault('settings', {})
     data.setdefault('slides', [])
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version})
 
 
@@ -618,7 +802,7 @@ def update_slide(slide_id):
     idx, _ = find_slide(data, slide_id)
     if idx >= 0:
         data['slides'][idx] = slide_data
-        version = save_slides(data)
+        version = save_slides(data, expected_version=_extract_base_version())
         return jsonify({"status": "ok", "_version": version})
     return jsonify({"error": "Slide not found"}), 404
 
@@ -630,7 +814,7 @@ def delete_slide(slide_id):
     data['slides'] = [s for s in data['slides'] if str(s.get('id')) != str(slide_id)]
     if len(data['slides']) == original_len:
         return jsonify({"error": "Slide not found"}), 404
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version})
 
 
@@ -665,7 +849,7 @@ def reorder_slides():
             reordered.append(slide)
 
     data['slides'] = reordered
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version, "unknown": unknown})
 
 
@@ -677,11 +861,18 @@ def upload_file():
     if file.filename == '':
         return jsonify({"error": "No filename"}), 400
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+        # secure_filename 会清掉中文字符，这里保留 Unicode 仅替换路径分隔符与危险字符
+        raw_name = os.path.basename(file.filename)
+        # 去掉路径分隔符、控制字符，保留中文等 Unicode
+        safe_name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', '_', raw_name).strip('._') or 'upload'
+        name, ext = os.path.splitext(safe_name)
         # 添加时间戳避免冲突
-        name, ext = os.path.splitext(filename)
         filename = f"{name}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        # 路径穿越防护
+        upload_root = os.path.realpath(app.config['UPLOAD_FOLDER'])
+        filepath = os.path.realpath(os.path.join(upload_root, filename))
+        if not filepath.startswith(upload_root + os.sep):
+            abort(403)
         file.save(filepath)
         return jsonify({
             "url": f"/static/uploads/{filename}",
@@ -696,7 +887,11 @@ def get_image_info():
     if not url:
         return jsonify({"error": "Missing url parameter"}), 400
     filename = url.split('/')[-1] if '/' in url else url
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    # 路径穿越防护：解析后必须仍在上传目录内
+    upload_root = os.path.realpath(app.config['UPLOAD_FOLDER'])
+    filepath = os.path.realpath(os.path.join(upload_root, filename))
+    if not filepath.startswith(upload_root + os.sep):
+        abort(403)
     if not os.path.exists(filepath):
         return jsonify({"error": f"File not found: {filename}"}), 404
     try:
@@ -747,17 +942,28 @@ def get_version():
 
 # ============ 组件 API ============
 
+# 启动期缓存的 components 模块引用，避免每次请求重复 sys.path.insert + import
+_CACHED_COMPONENTS_MODULE = None
+_COMPONENTS_PATH_INITIALIZED = False
+
+
 def get_components_module():
+    global _CACHED_COMPONENTS_MODULE, _COMPONENTS_PATH_INITIALIZED
+    if _CACHED_COMPONENTS_MODULE is not None:
+        return _CACHED_COMPONENTS_MODULE
     import sys
     from pathlib import Path
-    editor_path = str(Path(__file__).resolve().parent / SLIDE_EDITOR_PATH)
-    if editor_path not in sys.path:
-        sys.path.insert(0, editor_path)
+    if not _COMPONENTS_PATH_INITIALIZED:
+        editor_path = str(Path(__file__).resolve().parent / SLIDE_EDITOR_PATH)
+        if editor_path not in sys.path:
+            sys.path.insert(0, editor_path)
+        _COMPONENTS_PATH_INITIALIZED = True
     try:
         import components
+        _CACHED_COMPONENTS_MODULE = components
         return components
     except ImportError as e:
-        print(f"Error importing components module: {e}")
+        logger.error("导入 components 模块失败: %s", e)
         return None
 
 
@@ -770,7 +976,7 @@ def load_custom_components():
             with open(CUSTOM_COMPONENTS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            print(f"Error loading custom_components.json: {e}")
+            logger.error("加载 custom_components.json 失败: %s", e)
             return []
     return []
 
@@ -782,7 +988,7 @@ def save_custom_components(components):
             json.dump(components, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
-        print(f"Error saving custom_components.json: {e}")
+        logger.error("保存 custom_components.json 失败: %s", e)
         return False
 
 
@@ -835,155 +1041,41 @@ def delete_custom_component(name):
         return jsonify({"error": "Failed to delete component"}), 500
 
 
+# 组件默认数据/尺寸缓存（从 default_data.json 加载，避免每次请求重复解析）
+_COMPONENT_DEFAULTS_CACHE = None
+
+
+def _load_component_defaults():
+    """加载组件默认数据与尺寸，启动后缓存。"""
+    global _COMPONENT_DEFAULTS_CACHE
+    if _COMPONENT_DEFAULTS_CACHE is not None:
+        return _COMPONENT_DEFAULTS_CACHE
+    from pathlib import Path
+    defaults_file = Path(__file__).resolve().parent / SLIDE_EDITOR_PATH / 'components' / 'default_data.json'
+    empty = ({}, {})
+    if not defaults_file.exists():
+        _COMPONENT_DEFAULTS_CACHE = empty
+        return empty
+    try:
+        with open(defaults_file, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        default_data = raw.get('default_data', {})
+        default_sizes = raw.get('default_sizes', {})
+        _COMPONENT_DEFAULTS_CACHE = (default_data, default_sizes)
+        return _COMPONENT_DEFAULTS_CACHE
+    except Exception as e:
+        logger.error("加载 default_data.json 失败: %s", e)
+        _COMPONENT_DEFAULTS_CACHE = empty
+        return empty
+
+
 @app.route('/api/components', methods=['GET'])
 def get_components():
     mod = get_components_module()
     if not mod:
         return jsonify(load_custom_components())
-    
-    DEFAULT_DATA = {
-        "metric-card": {
-            "label": "关键指标",
-            "value": "42",
-            "unit": "%",
-            "caption": "核心变化一眼读完",
-            "accent": "#C5E803"
-        },
-        "grid-card": {
-            "index": "01",
-            "label": "网格卡片标题",
-            "body": "卡片正文描述内容，可以自由调整。",
-            "accent": "#C5E803"
-        },
-        "grid-list": {
-            "title": "网格列表",
-            "columns": 2,
-            "accent": "#C5E803",
-            "items": [
-                {"label": "结构化", "body": "信息按固定网格组织"},
-                {"label": "可扫描", "body": "标题、编号和正文层级清晰"},
-                {"label": "易扩展", "body": "传入 JSON 即可生成列表"}
-            ]
-        },
-        "circular-flow": {
-            "title": "闭环流程",
-            "accent": "#C5E803",
-            "items": [
-                {"label": "输入", "body": "收集素材"},
-                {"label": "处理", "body": "生成结构"},
-                {"label": "验证", "body": "校验版面"},
-                {"label": "输出", "body": "导出预览"}
-            ]
-        },
-        "compare-columns": {
-            "title": "双栏对比",
-            "accent": "#C5E803",
-            "left": {"kicker": "A", "label": "Before", "body": "旧方式的主要限制"},
-            "right": {"kicker": "B", "label": "After", "body": "新方式的关键改进"}
-        },
-        "kpi-strip": {
-            "accent": "#C5E803",
-            "metrics": [
-                {"label": "效率", "value": "3.2", "unit": "x", "caption": "端到端提速"},
-                {"label": "成本", "value": "-28", "unit": "%", "caption": "单次交付下降"},
-                {"label": "质量", "value": "96", "unit": "%", "caption": "校验通过率"}
-            ]
-        },
-        "screenshot-frame": {
-            "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"><rect width=\"100%\" height=\"100%\" fill=\"%23f3f3ee\"/><rect x=\"20\" y=\"20\" width=\"360\" height=\"260\" rx=\"4\" fill=\"none\" stroke=\"%23d9d9d2\" stroke-width=\"2\" stroke-dasharray=\"8 6\"/><path d=\"M170 130 h60 v40 h-60 z M180 130 l10 -10 h20 l10 10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\" stroke-linejoin=\"round\"/><circle cx=\"200\" cy=\"150\" r=\"10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\"/><text x=\"50%\" y=\"195\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"%2366665f\" font-weight=\"500\">IMAGE PLACEHOLDER</text></svg>",
-            "title": "Preview",
-            "caption": "截图美化框",
-            "accent": "#C5E803"
-        },
-        "guizang-typography": {
-            "text": "这是 Guizang 风格排版组件",
-            "role": "body",
-            "color": "#0a0a0b"
-        },
-        "guizang-callout": {
-            "quote": "极简是不堆砌，是有克制的表达与高精度的对齐。",
-            "cite": "《Guizang 设计手册》",
-            "accent": "#0a0a0b"
-        },
-        "guizang-stat-card": {
-            "label": "Duration",
-            "value": "64天",
-            "caption": "从 0 到现在",
-            "accent": "#C5E803"
-        },
-        "guizang-stat-grid": {
-            "columns": 3,
-            "accent": "#C5E803",
-            "items": [
-                {"label": "Duration", "value": "64天", "caption": "从 0 到现在"},
-                {"label": "Revenue", "value": "1.2M", "caption": "年度营收"},
-                {"label": "Growth", "value": "340%", "caption": "同比增长"}
-            ]
-        },
-        "guizang-pillar-card": {
-            "icon": "01",
-            "label": "支柱标题",
-            "description": "支柱细节描述内容。",
-            "accent": "#C5E803"
-        },
-        "guizang-pillar": {
-            "columns": 3,
-            "accent": "#C5E803",
-            "items": [
-                {"icon": "01", "label": "判断力", "description": "决策和方向的权威"},
-                {"icon": "02", "label": "执行力", "description": "高效交付的能力"},
-                {"icon": "03", "label": "复盘力", "description": "持续优化的闭环"}
-            ]
-        },
-        "guizang-rowline": {
-            "columns": 3,
-            "items": [
-                {"keyword": "CLAUDE.md", "value": "你该怎么做事", "tag": "EMPLOYEE HANDBOOK"},
-                {"keyword": "SKILL.md", "value": "行为规则与工作偏好", "tag": "KNOWLEDGE"},
-                {"keyword": "RULES.md", "value": "护栏文件", "tag": "GUARDRAILS"}
-            ]
-        },
-        "guizang-figure": {
-            "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 300\"><rect width=\"100%\" height=\"100%\" fill=\"%23f3f3ee\"/><rect x=\"20\" y=\"20\" width=\"360\" height=\"260\" rx=\"4\" fill=\"none\" stroke=\"%23d9d9d2\" stroke-width=\"2\" stroke-dasharray=\"8 6\"/><path d=\"M170 130 h60 v40 h-60 z M180 130 l10 -10 h20 l10 10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\" stroke-linejoin=\"round\"/><circle cx=\"200\" cy=\"150\" r=\"10\" fill=\"none\" stroke=\"%234b4b45\" stroke-width=\"2\"/><text x=\"50%\" y=\"195\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"system-ui, sans-serif\" font-size=\"14\" fill=\"%2366665f\" font-weight=\"500\">IMAGE PLACEHOLDER</text></svg>",
-            "caption": "图片说明",
-            "platform": "Weibo",
-            "value": "289K",
-            "aspectRatio": "16:10"
-        },
-        "guizang-platform": {
-            "sub": "Weibo",
-            "name": "微博",
-            "value": "289K",
-            "caption": "社交媒体粉丝量",
-            "accent": "#C5E803"
-        },
-        "guizang-ghost": {
-            "text": "BUT",
-            "position": "top-right",
-            "opacity": 0.06,
-            "fontStyle": "italic"
-        }
-    }
 
-    DEFAULT_SIZES = {
-        "metric-card": { "width": 240, "height": 180 },
-        "grid-card": { "width": 260, "height": 180 },
-        "grid-list": { "width": 840, "height": 260 },
-        "circular-flow": { "width": 400, "height": 400 },
-        "compare-columns": { "width": 840, "height": 250 },
-        "kpi-strip": { "width": 840, "height": 88 },
-        "screenshot-frame": { "width": 480, "height": 300 },
-        "guizang-typography": { "width": 400, "height": 100 },
-        "guizang-callout": { "width": 400, "height": 150 },
-        "guizang-stat-card": { "width": 240, "height": 160 },
-        "guizang-stat-grid": { "width": 840, "height": 160 },
-        "guizang-pillar-card": { "width": 260, "height": 220 },
-        "guizang-pillar": { "width": 840, "height": 220 },
-        "guizang-rowline": { "width": 600, "height": 250 },
-        "guizang-figure": { "width": 400, "height": 280 },
-        "guizang-platform": { "width": 240, "height": 180 },
-        "guizang-ghost": { "width": 600, "height": 200 }
-    }
+    DEFAULT_DATA, DEFAULT_SIZES = _load_component_defaults()
 
     results = []
     for name, item in mod.COMPONENTS.items():
@@ -994,7 +1086,7 @@ def get_components():
             html = rendered.get("html", "")
             css = rendered.get("css", "")
         except Exception as e:
-            print(f"Error rendering component {name}: {e}")
+            logger.error("渲染组件 %s 失败: %s", name, e)
             html = ""
             css = ""
         results.append({
@@ -1064,7 +1156,7 @@ def create_slide():
     else:
         data['slides'].insert(index, new_slide)
 
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version, "slide": new_slide})
 
 
@@ -1114,7 +1206,7 @@ def add_element(slide_id):
         slide['canvas_elements'].insert(index, element)
 
     data['slides'][idx] = slide
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version, "element": element})
 
 
@@ -1149,7 +1241,7 @@ def update_element(slide_id, elem_id):
     elements[elem_idx]['type'] = original_type
 
     data['slides'][slide_idx]['canvas_elements'] = elements
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version, "element": elements[elem_idx]})
 
 
@@ -1169,7 +1261,7 @@ def delete_element(slide_id, elem_id):
         return jsonify({"error": "Element not found"}), 404
 
     data['slides'][slide_idx]['canvas_elements'] = elements
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     return jsonify({"status": "ok", "_version": version})
 
 
@@ -1259,7 +1351,7 @@ def batch_elements(slide_id):
             })
 
     data['slides'][slide_idx] = slide
-    version = save_slides(data)
+    version = save_slides(data, expected_version=_extract_base_version())
     has_errors = any(item.get('status') == 'error' for item in results)
     return jsonify({"status": "partial" if has_errors else "ok", "_version": version, "results": results})
 
@@ -1340,7 +1432,7 @@ def import_data():
         next_data['slides'].extend(appended.get('slides', []))
         rewritten_ids = True
 
-    version = save_slides(next_data, workspace_id)
+    version = save_slides(next_data, workspace_id, expected_version=_extract_base_version())
     return jsonify({
         "status": "ok",
         "workspace": workspace_id,
@@ -1380,4 +1472,16 @@ def serve_workspace_export(workspace_id, filename):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # 默认仅监听本机，避免 Werkzeug 调试器暴露到外网导致远程代码执行。
+    # 需要分享时显式设置 FLASK_HOST=0.0.0.0，且务必 FLASK_DEBUG=0。
+    DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
+    HOST = os.environ.get('FLASK_HOST', '127.0.0.1')
+    PORT = int(os.environ.get('FLASK_PORT', '5001'))
+    if HOST == '0.0.0.0' and DEBUG:
+        logger.warning("检测到 FLASK_HOST=0.0.0.0 且 FLASK_DEBUG=1，正在强制关闭 debug 以避免远程代码执行风险。")
+        DEBUG = False
+    if HOST == '0.0.0.0' and not AUTH_TOKEN:
+        logger.error("FLASK_HOST=0.0.0.0 监听外网但未设置 QIAN_PPT_TOKEN，写操作将无认证暴露。")
+        logger.error("请设置环境变量 QIAN_PPT_TOKEN=<你的密码> 后再启动，或改用 FLASK_HOST=127.0.0.1。")
+        raise SystemExit(1)
+    app.run(debug=DEBUG, host=HOST, port=PORT)
