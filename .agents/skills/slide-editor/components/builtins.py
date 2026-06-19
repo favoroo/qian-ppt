@@ -70,10 +70,10 @@ def normalize_metrics(data: dict[str, Any], limit: int = 6) -> list[dict[str, st
 def render_metric_card(data: dict[str, Any]) -> dict[str, str]:
     """渲染指标卡 HTML/CSS 组件。"""
     accent = component_color(data, "accent", "#C5E803")
-    label = esc(data.get("label", "关键指标"))
-    value = esc(data.get("value", "42"))
-    unit = esc(data.get("unit", ""))
-    caption = esc(data.get("caption", data.get("body", "核心变化一眼读完")))
+    label = data.get("label", "关键指标")
+    value = data.get("value", "42")
+    unit = data.get("unit", "")
+    caption = data.get("caption", data.get("body", "核心变化一眼读完"))
     html = (
         '<div class="se-metric-card">'
         f'{editable_text(label, "label", "div", "se-metric-label")}'
@@ -143,7 +143,7 @@ def render_grid_list(data: dict[str, Any]) -> dict[str, str]:
     accent = component_color(data, "accent", "#C5E803")
     cols = int(data.get("columns", 2) or 2)
     cols = max(1, min(cols, 4))
-    title = esc(data.get("title", ""))
+    title = data.get("title", "")
     title_html = editable_text(title, "title", "div", "se-grid-title") if title else ""
     cards = []
     for index, item in enumerate(items, start=1):
@@ -215,7 +215,7 @@ def render_circular_flow(data: dict[str, Any]) -> dict[str, str]:
         {"label": "输出", "body": "导出预览"},
     ]
     accent = component_color(data, "accent", "#C5E803")
-    center = esc(data.get("center", data.get("title", "循环")))
+    center = data.get("center", data.get("title", "循环"))
     count = len(items)
     nodes = []
     for index, item in enumerate(items):
@@ -317,7 +317,7 @@ def render_compare_columns(data: dict[str, Any]) -> dict[str, str]:
         items = normalize_items(data, limit=2)
         left = items[0] if len(items) > 0 else {"label": "Before", "body": "旧方式的主要限制"}
         right = items[1] if len(items) > 1 else {"label": "After", "body": "新方式的关键改进"}
-    title = esc(data.get("title", ""))
+    title = data.get("title", "")
     title_html = editable_text(title, "title", "div", "se-compare-title") if title else ""
     html = f"""
 <div class="se-compare" style="--accent:{accent};">
@@ -477,8 +477,8 @@ def render_screenshot_frame(data: dict[str, Any]) -> dict[str, str]:
     if not src:
         raise ValueError("screenshot-frame 需要 src 字段，通常是 upload 返回的 /static/uploads/... 路径")
     accent = component_color(data, "accent", "#C5E803")
-    title = esc(data.get("title", data.get("label", "Preview")))
-    caption = esc(data.get("caption", ""))
+    title = data.get("title", data.get("label", "Preview"))
+    caption = data.get("caption", "")
     caption_html = editable_text(caption, "caption", "div", "se-shot-caption") if caption else ""
     html = f"""
 <figure class="se-shot" style="--accent:{accent};">
@@ -486,7 +486,7 @@ def render_screenshot_frame(data: dict[str, Any]) -> dict[str, str]:
     <span></span><span></span><span></span>
     {editable_text(title, "title", "strong", "")}
   </div>
-  <div class="se-shot-body"><img src="{src}" alt="{title}"></div>
+  <div class="se-shot-body"><img src="{src}" alt="{esc(title)}"></div>
   {caption_html}
 </figure>
 """.strip()
@@ -556,8 +556,8 @@ def render_grid_card(data: dict[str, Any]) -> dict[str, str]:
     """渲染单体网格卡片 HTML/CSS 组件。"""
     accent = component_color(data, "accent", "#C5E803")
     index = esc(data.get("index", "01"))
-    label = esc(data.get("label", "单体网格卡片标题"))
-    body = esc(data.get("body", "卡片正文描述内容，可以自由调整。"))
+    label = data.get("label", "单体网格卡片标题")
+    body = data.get("body", "卡片正文描述内容，可以自由调整。")
     html = (
         f'<div class="se-grid-card" style="--accent:{accent};">'
         f'<div class="se-grid-index">{index}</div>'

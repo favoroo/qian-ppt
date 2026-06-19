@@ -43,9 +43,17 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm'}
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60 * 60 * 24 * 7  # 静态资源 7 天缓存
 
+# ============ 配置参数（按需调整） ============
+# 日志开关：True 开启日志记录，False 关闭以节省性能
+LOG_ENABLED = True
+
+# 生产模式开关：True 使用 Waitress WSGI 服务器（适合部署），False 使用 Flask 自带开发服务器
+# 切换为 True 前请先安装依赖：pip install waitress
+PRODUCTION_MODE = False
+
 # 日志配置：按日期落盘 + 异步写入 + 大小轮转（详见 log_config.py）
 from log_config import setup_logging, get_logger
-setup_logging()
+setup_logging(enabled=LOG_ENABLED)
 logger = get_logger('qian-ppt')
 
 if not HAS_FILE_LOCK:
@@ -721,9 +729,9 @@ def server_error(e):
 
 @app.errorhandler(Exception)
 def unhandled_exception(e):
-    # HTTP 异常（abort 引发的 403/400 等）交由 Flask 默认处理，不在此拦截
+    # HTTP 异常（abort 引发的 403/400 等）按原始状态码返回，不作为未处理异常拦截
     if isinstance(e, HTTPException):
-        raise e
+        return e.get_response()
     logger.error("未处理异常: %s %s - %s", request.method, request.path, e, exc_info=True)
     return jsonify({"error": "internal server error"}), 500
 
@@ -1532,8 +1540,18 @@ if __name__ == '__main__':
         raise SystemExit(1)
     logger.info("=" * 50)
     logger.info("Qian-PPT 启动中...")
-    logger.info("监听地址: %s:%s (debug=%s)", HOST, PORT, DEBUG)
+    logger.info("监听地址: %s:%s (debug=%s, production=%s)", HOST, PORT, DEBUG, PRODUCTION_MODE)
     logger.info("认证状态: %s", "已启用 (QIAN_PPT_TOKEN)" if AUTH_TOKEN else "未启用 (本地零配置)")
     logger.info("日志目录: %s", os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log'))
     logger.info("=" * 50)
-    app.run(debug=DEBUG, host=HOST, port=PORT)
+
+    if PRODUCTION_MODE:
+        try:
+            from waitress import serve
+            logger.info("已切换到生产模式：使用 Waitress WSGI 服务器")
+            serve(app, host=HOST, port=PORT)
+        except ImportError:
+            logger.error("PRODUCTION_MODE=True 但未安装 waitress，请先执行：pip install waitress")
+            raise SystemExit(1)
+    else:
+        app.run(debug=DEBUG, host=HOST, port=PORT)

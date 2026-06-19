@@ -50,6 +50,25 @@ class ColoredFormatter(logging.Formatter):
         return f'{color}{message}{_RESET}' if color else message
 
 
+class PollingEndpointFilter(logging.Filter):
+    """过滤高频轮询端点的 werkzeug 访问日志，减少终端噪音。
+
+    前端每秒轮询 /api/version 检测外部修改，其访问日志无诊断价值
+    且会刷屏。此过滤器将这些轮询日志静默，保留其他访问日志
+    （如 POST 保存、GET slides）。
+    """
+
+    # 需要静默的路径片段（高频轮询、无业务价值）
+    SUPPRESSED_PATHS = ('/api/version',)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        for path in self.SUPPRESSED_PATHS:
+            if path in msg:
+                return False
+        return True
+
+
 class DailyDateFileHandler(logging.Handler):
     """按日期命名日志文件并在午夜自动切换的 handler。
 
@@ -171,14 +190,28 @@ def cleanup_old_logs(log_dir: str = _LOG_DIR,
                 pass
 
 
-def setup_logging(level: int | None = None) -> logging.Logger:
+def setup_logging(level: int | None = None, enabled: bool | None = None) -> logging.Logger:
     """配置全局日志系统。
 
-    - 创建 log/ 目录
-    - 清理过期日志
-    - 安装文件 handler（按日期+大小轮转）和控制台 handler（彩色）
-    - 使用 QueueHandler 异步写入，主线程零阻塞
+    日志开关：
+    - enabled=True：开启日志（默认）
+    - enabled=False：完全关闭日志，不创建文件、不启动后台线程
+    - enabled=None：回退到环境变量 LOG_ENABLED（默认开启）
     """
+    if enabled is None:
+        enabled = os.environ.get('LOG_ENABLED', '1').strip() not in ('0', 'false', 'False', 'no', 'NO')
+
+    root_logger = logging.getLogger()
+    # 移除已有 handler，避免重复输出
+    for h in list(root_logger.handlers):
+        root_logger.removeHandler(h)
+
+    if not enabled:
+        # 关闭日志：附加 NullHandler 防止警告，级别设为最高以短路所有日志调用
+        root_logger.addHandler(logging.NullHandler())
+        root_logger.setLevel(logging.CRITICAL + 1)
+        return root_logger
+
     if level is None:
         env_level = os.environ.get('LOG_LEVEL', '').upper()
         level = getattr(logging, env_level, DEFAULT_LOG_LEVEL)
@@ -201,13 +234,12 @@ def setup_logging(level: int | None = None) -> logging.Logger:
     listener.start()
     atexit.register(listener.stop)
 
-    # 配置 root logger
-    root_logger = logging.getLogger()
     root_logger.setLevel(level)
-    # 移除已有 handler，避免重复输出
-    for h in list(root_logger.handlers):
-        root_logger.removeHandler(h)
     root_logger.addHandler(queue_handler)
+
+    # 静默高频轮询端点的访问日志（如前端每秒轮询 /api/version）
+    werkzeug_logger = logging.getLogger('werkzeug')
+    werkzeug_logger.addFilter(PollingEndpointFilter())
 
     return root_logger
 

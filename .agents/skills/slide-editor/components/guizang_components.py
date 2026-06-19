@@ -62,7 +62,7 @@ def render_guizang_typography(data: dict[str, Any]) -> dict[str, str]:
     - color: 可选覆盖颜色
     """
     role = str(data.get("role", "body") or "body").lower()
-    text = esc(data.get("text", ""))
+    text = data.get("text", "")
     
     # guizang 字体分工 → px 映射（适配 960x540 画布）
     typography_map = {
@@ -164,7 +164,7 @@ def render_guizang_callout(data: dict[str, Any]) -> dict[str, str]:
     - cite: 引用来源（可选）
     - accent: 强调色（默认 #0a0a0b）
     """
-    quote = esc(data.get("quote", ""))
+    quote = data.get("quote", "")
     cite = data.get("cite", "")
     cite_html = editable_text(cite, "cite", "span", "gz-cite") if cite else ""
     
@@ -639,9 +639,9 @@ def render_guizang_platform(data: dict[str, Any]) -> dict[str, str]:
     - caption: 补充说明（可选）
     - accent: 强调色（默认 #C5E803）
     """
-    sub = esc(data.get("sub", "Platform"))
-    name = esc(data.get("name", "平台名称"))
-    value = esc(data.get("value", "0"))
+    sub = data.get("sub", "Platform")
+    name = data.get("name", "平台名称")
+    value = data.get("value", "0")
     caption = data.get("caption", "")
     accent = component_color(data, "accent", "#C5E803")
     
@@ -715,7 +715,7 @@ def render_guizang_ghost(data: dict[str, Any]) -> dict[str, str]:
     - opacity: 透明度 0-1（默认 0.06）
     - fontStyle: italic|normal（默认 italic）
     """
-    text = esc(data.get("text", "BUT"))
+    text = data.get("text", "BUT")
     position = str(data.get("position", "top-right")).lower()
     opacity = float(data.get("opacity", 0.06) or 0.06)
     font_style = str(data.get("fontStyle", "italic")).lower()
@@ -761,8 +761,8 @@ def render_guizang_pillar_card(data: dict[str, Any]) -> dict[str, str]:
     """渲染 guizang 风格单体支柱卡片 HTML/CSS 组件。"""
     accent = component_color(data, "accent", "#C5E803")
     icon = esc(data.get("icon", "01"))
-    label = esc(data.get("label", "支柱卡片标题"))
-    description = esc(data.get("description", data.get("body", "支柱描述细节。")))
+    label = data.get("label", "支柱卡片标题")
+    description = data.get("description", data.get("body", "支柱描述细节。"))
     
     icon_is_number = icon.isdigit()
     icon_html = (
@@ -822,15 +822,15 @@ def render_guizang_pillar_card(data: dict[str, Any]) -> dict[str, str]:
 def render_guizang_stat_card(data: dict[str, Any]) -> dict[str, str]:
     """渲染 guizang 风格单体数据卡片 HTML/CSS 组件。"""
     accent = component_color(data, "accent", "#C5E803")
-    label = esc(data.get("label", "Duration"))
-    value = esc(data.get("value", "64天"))
-    caption = esc(data.get("caption", "从 0 到现在"))
+    label = data.get("label", "Duration")
+    value = data.get("value", "64天")
+    caption = data.get("caption", "从 0 到现在")
     
     html = (
         f'<div class="gz-stat-card" style="--accent:{accent};">'
-        f'<span class="gz-stat-label">{label}</span>'
-        f'<span class="gz-stat-value">{value}</span>'
-        f'<span class="gz-stat-caption">{caption}</span>'
+        f'{editable_text(label, "label", "span", "gz-stat-label")}'
+        f'{editable_text(value, "value", "span", "gz-stat-value")}'
+        f'{editable_text(caption, "caption", "span", "gz-stat-caption")}'
         "</div>"
     )
     css = """

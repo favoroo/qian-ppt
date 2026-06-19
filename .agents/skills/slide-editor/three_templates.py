@@ -272,7 +272,7 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);
-camera.position.set(0,3,5);
+camera.position.set(0,4.5,7.5);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setSize(w,h,false);
@@ -346,7 +346,7 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(45,w/h,0.1,1000);
-camera.position.set(0,3,6);
+camera.position.set(0,5,10);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setSize(w,h,false);
@@ -420,7 +420,7 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
-camera.position.set(0,0,6);
+camera.position.set(0,0,9);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setSize(w,h,false);
 renderer.setPixelRatio(window.devicePixelRatio||1);
