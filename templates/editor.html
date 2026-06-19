@@ -748,6 +748,16 @@ body {
   pointer-events: none;
 }
 
+.html-preview-item [data-field-path] {
+  pointer-events: auto;
+  cursor: text;
+}
+.html-preview-item [data-field-path]:focus {
+  outline: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0a0a0a;
+}
+
 .canvas-container .upper-canvas {
   z-index: 3;
 }
@@ -2132,6 +2142,79 @@ select.form-control {
 .context-menu.closing {
   animation: ctxFadeOut 0.1s ease forwards;
 }
+
+/* ===== 工作区切换过渡动画 ===== */
+.workspace-switch-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.workspace-switch-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.workspace-switch-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0, 0, 0, 0.08);
+  border-top-color: var(--accent, #C5E803);
+  border-radius: 50%;
+  animation: ws-spin 0.8s linear infinite;
+}
+
+.workspace-switch-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  max-width: 240px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes ws-spin {
+  to { transform: rotate(360deg); }
+}
+
+.main-layout,
+.statusbar {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.main-layout.switching-out,
+.statusbar.switching-out {
+  opacity: 0;
+  transform: scale(0.98);
+  filter: blur(2px);
+}
+
+.main-layout.switching-in,
+.statusbar.switching-in {
+  opacity: 0;
+  transform: scale(0.98);
+  filter: blur(2px);
+  animation: ws-switch-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes ws-switch-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
 </style>
 </head>
 <body>
@@ -2229,6 +2312,12 @@ select.form-control {
   </div>
 </div>
 
+<!-- 工作区切换过渡遮罩 -->
+<div id="workspaceSwitchOverlay" class="workspace-switch-overlay">
+  <div class="workspace-switch-spinner"></div>
+  <div class="workspace-switch-label" id="workspaceSwitchLabel"></div>
+</div>
+
 <!-- 主布局 (三栏) -->
 <div class="main-layout">
 
@@ -2267,17 +2356,9 @@ select.form-control {
         <span class="material-symbols-rounded">widgets</span>
         <span data-i18n="toolbar.component">组件</span>
       </button>
-      <button class="toolbar-btn" onclick="addRectElement()" title="添加矩形" data-i18n-title="toolbar.rectTitle">
-        <span class="material-symbols-rounded">rectangle</span>
-        <span data-i18n="toolbar.rect">矩形</span>
-      </button>
-      <button class="toolbar-btn" onclick="addCircleElement()" title="添加圆形" data-i18n-title="toolbar.circleTitle">
-        <span class="material-symbols-rounded">circle</span>
-        <span data-i18n="toolbar.circle">圆形</span>
-      </button>
-      <button class="toolbar-btn" onclick="addTriangleElement()" title="添加三角形" data-i18n-title="toolbar.triangleTitle">
-        <span class="material-symbols-rounded">change_history</span>
-        <span data-i18n="toolbar.triangle">三角</span>
+      <button class="toolbar-btn" onclick="openShapePicker()" title="添加形状" data-i18n-title="toolbar.shapeTitle">
+        <span class="material-symbols-rounded">shapes</span>
+        <span data-i18n="toolbar.shape">形状</span>
       </button>
       <button class="toolbar-btn" onclick="open3DPicker()" title="添加 3D 元素" data-i18n-title="toolbar.threeDTitle">
         <span class="material-symbols-rounded">view_in_ar</span>
@@ -2551,7 +2632,7 @@ window.prompt = function(message, defaultValue) {
 
 // ============ 全局状态 ============
 let slidesData = {{ slides_data | safe }};
-const currentWorkspaceId = {{ workspace_id | tojson }};
+let currentWorkspaceId = {{ workspace_id | tojson }};
 let workspaces = {{ workspaces_json | safe }};
 let selectedSlideId = null;
 let canvas = null;
@@ -2988,6 +3069,7 @@ function refreshCanvasTextMetrics() {
 }
 
 let htmlPreviewSyncRaf = null;
+let isComponentTextEditing = false;
 
 function scheduleHtmlPreviewSync() {
   if (htmlPreviewSyncRaf) cancelAnimationFrame(htmlPreviewSyncRaf);
@@ -2998,7 +3080,7 @@ function scheduleHtmlPreviewSync() {
 }
 
 function syncHtmlPreviewLayer() {
-  if (!canvas) return;
+  if (!canvas || isComponentTextEditing) return;
   const layer = ensureHtmlPreviewLayer();
   if (!layer) return;
   layer.style.width = `${CANVAS_BASE_WIDTH}px`;
@@ -3045,7 +3127,7 @@ function syncHtmlPreviewLayer() {
         item.querySelectorAll('script').forEach(oldScript => {
           const newScript = document.createElement('script');
           Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          newScript.text = oldScript.textContent;
           oldScript.parentNode.replaceChild(newScript, oldScript);
         });
       }
@@ -3079,7 +3161,90 @@ function ensureHtmlPreviewLayer() {
     layer.className = 'html-preview-layer';
     container.appendChild(layer);
   }
+  if (!layer._dblclickBound) {
+    layer.addEventListener('dblclick', handleComponentTextDblClick);
+    layer._dblclickBound = true;
+  }
   return layer;
+}
+
+function handleComponentTextDblClick(e) {
+  if (isComponentTextEditing) return;
+
+  const fieldEl = e.target.closest('[data-field-path]');
+  if (!fieldEl) return;
+
+  const item = fieldEl.closest('.html-preview-item');
+  if (!item) return;
+
+  const obj = canvas.getObjects().find(o => o.id === item.dataset.id);
+  if (!obj || obj.elementType !== 'html' || !obj.meta || !obj.meta.component) return;
+  if (obj.lockMovementX || obj.lockMovementY) return;
+
+  e.stopPropagation();
+  canvas.setActiveObject(obj);
+  updatePropsPanel();
+  startComponentTextEdit(fieldEl, fieldEl.dataset.fieldPath, obj);
+}
+
+function startComponentTextEdit(el, path, obj) {
+  if (isComponentTextEditing) return;
+  isComponentTextEditing = true;
+
+  const originalText = el.textContent;
+  el.contentEditable = 'true';
+  el.focus();
+
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  function finish() {
+    el.removeEventListener('blur', finish);
+    el.removeEventListener('keydown', onKeyDown);
+    el.contentEditable = 'false';
+    const newText = el.textContent;
+    isComponentTextEditing = false;
+    if (newText !== originalText) {
+      updateComponentDataField(obj, path, newText);
+    }
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      el.blur();
+    } else if (e.key === 'Escape') {
+      el.textContent = originalText;
+      el.blur();
+    }
+  }
+
+  el.addEventListener('blur', finish);
+  el.addEventListener('keydown', onKeyDown);
+}
+
+function setDataField(data, path, value) {
+  const parts = path.split('.');
+  let current = data;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    const nextPart = parts[i + 1];
+    const isNextIdx = /^\d+$/.test(nextPart);
+    if (current[part] === undefined) {
+      current[part] = isNextIdx ? [] : {};
+    }
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+async function updateComponentDataField(obj, path, value) {
+  const newData = JSON.parse(JSON.stringify(obj.meta.data || {}));
+  setDataField(newData, path, value);
+  await updateComponentOnCanvas(obj, newData);
 }
 
 
@@ -3490,23 +3655,157 @@ function renderWorkspaceSelect() {
   });
 }
 
-async function switchWorkspace(workspaceId) {
+function apiUrlForWorkspace(path, workspaceId) {
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set('workspace', workspaceId);
+  return url.pathname + url.search;
+}
+
+function getWorkspaceName(workspaceId) {
+  const ws = workspaces.find(w => w.id === workspaceId);
+  return ws ? (ws.name || ws.id) : workspaceId;
+}
+
+function setWorkspaceSwitchOverlay(show, workspaceId) {
+  const overlay = document.getElementById('workspaceSwitchOverlay');
+  const label = document.getElementById('workspaceSwitchLabel');
+  if (!overlay) return;
+  if (show) {
+    if (label) label.textContent = getWorkspaceName(workspaceId);
+    overlay.classList.add('active');
+  } else {
+    overlay.classList.remove('active');
+  }
+}
+
+function setWorkspaceSwitchAnimation(phase) {
+  const main = document.querySelector('.main-layout');
+  const statusbar = document.querySelector('.statusbar');
+  [main, statusbar].forEach(el => {
+    if (!el) return;
+    el.classList.remove('switching-out', 'switching-in');
+    if (phase) el.classList.add(phase);
+  });
+}
+
+async function loadWorkspaceData(workspaceId) {
+  const resp = await fetch(apiUrlForWorkspace('/api/slides', workspaceId));
+  if (!resp.ok) throw new Error(t('workspace.loadFailed'));
+  return await resp.json();
+}
+
+function resetEditorForWorkspace(workspaceId, data) {
+  // 停止自动保存与缩略图定时器
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
+  if (thumbUpdateTimer) { clearTimeout(thumbUpdateTimer); thumbUpdateTimer = null; }
+  if (versionCheckInterval) { clearInterval(versionCheckInterval); versionCheckInterval = null; }
+  if (slideDeleteToastTimer) { clearTimeout(slideDeleteToastTimer); slideDeleteToastTimer = null; }
+
+  // 更新全局状态
+  currentWorkspaceId = workspaceId;
+  slidesData = data;
+  if (!slidesData.slides) slidesData.slides = [];
+  if (!slidesData.settings) slidesData.settings = { accent: 'lemon-green', title: 'QIAN-PPT' };
+  selectedSlideId = null;
+  dataVersion = slidesData._version || 0;
+  originalSlidesData = JSON.parse(JSON.stringify(slidesData));
+  externalModifiedSlideIds.clear();
+  locallyModifiedSlideIds.clear();
+
+  // 清空撤销/重做/删除栈与缩略图缓存
+  undoStack.length = 0;
+  redoStack.length = 0;
+  deletedSlidesStack.length = 0;
+  for (const key of Object.keys(slideThumbnails)) delete slideThumbnails[key];
+
+  // 清理画布与背景
+  if (canvas) {
+    canvas.off('object:removed');
+    canvas.off('object:added');
+    canvas.clear();
+  }
+  clearGuideLines();
+  const layer = ensureHtmlPreviewLayer();
+  if (layer) layer.innerHTML = '';
+  stopEditorBg();
+  initEditorBgCanvas();
+
+  // 同步浏览器地址栏
+  history.pushState(null, '', editorUrlForWorkspace(workspaceId));
+
+  // 刷新 UI
+  refreshEditorLanguage();
+  renderWorkspaceSelect();
+
+  const initialAccent = (slidesData.settings && slidesData.settings.accentHex) || '#C5E803';
+  changeThemeColor(initialAccent, false);
+
+  renderSlideList();
+
+  // 选择第一张幻灯片或恢复上次位置
+  if (slidesData.slides.length > 0) {
+    let restoredId = null;
+    try {
+      const savedId = sessionStorage.getItem(workspaceStorageKey('editor_slide_id'));
+      if (savedId !== null) {
+        const match = slidesData.slides.find(s => String(s.id) === savedId);
+        if (match) restoredId = match.id;
+      }
+    } catch(e) {}
+    selectSlide(restoredId || slidesData.slides[0].id);
+  } else {
+    addSlide();
+  }
+
+  // 延迟生成全部缩略图
+  setTimeout(() => {
+    generateAllThumbnails();
+  }, 1000);
+
+  // 恢复保存状态显示
+  updateSaveStatus('saved');
+}
+
+async function switchWorkspace(workspaceId, skipSave = false) {
   if (!workspaceId || workspaceId === currentWorkspaceId) {
     renderWorkspaceSelect();
     return;
   }
-  try {
-    if (selectedSlideId && canvas) {
-      saveCurrentCanvasToSlide(selectedSlideId);
-      await saveNow();
-    }
-  } catch (e) {
-    if (!(await confirm(t('workspace.saveFailedSwitch')))) {
-      renderWorkspaceSelect();
-      return;
+  if (!skipSave) {
+    try {
+      if (selectedSlideId && canvas) {
+        saveCurrentCanvasToSlide(selectedSlideId);
+        await saveNow();
+      }
+    } catch (e) {
+      if (!(await confirm(t('workspace.saveFailedSwitch')))) {
+        renderWorkspaceSelect();
+        return;
+      }
     }
   }
-  window.location.href = editorUrlForWorkspace(workspaceId);
+
+  setWorkspaceSwitchOverlay(true, workspaceId);
+  setWorkspaceSwitchAnimation('switching-out');
+
+  // 等待淡出动画完成后再请求数据
+  setTimeout(async () => {
+    try {
+      const data = await loadWorkspaceData(workspaceId);
+      await refreshWorkspaces();
+      resetEditorForWorkspace(workspaceId, data);
+      setWorkspaceSwitchAnimation('switching-in');
+      setWorkspaceSwitchOverlay(false, workspaceId);
+      setTimeout(() => {
+        setWorkspaceSwitchAnimation(null);
+      }, 260);
+    } catch (e) {
+      setWorkspaceSwitchAnimation(null);
+      setWorkspaceSwitchOverlay(false, workspaceId);
+      renderWorkspaceSelect();
+      await alert(t('workspace.loadFailed'));
+    }
+  }, 180);
 }
 
 async function refreshWorkspaces() {
@@ -3536,7 +3835,8 @@ async function createWorkspace() {
     await alert(result.error || t('workspace.createFailed'));
     return;
   }
-  window.location.href = editorUrlForWorkspace(result.workspace.id);
+  // 无刷新切换到新创建的工作区
+  await switchWorkspace(result.workspace.id);
 }
 
 async function renameWorkspace() {
@@ -3570,7 +3870,9 @@ async function deleteWorkspace() {
     await alert(result.error || t('workspace.deleteFailed'));
     return;
   }
-  window.location.href = editorUrlForWorkspace(result.fallback || 'default');
+  // 无刷新切换到剩余工作区（当前工作区已删除，跳过保存）
+  await refreshWorkspaces();
+  await switchWorkspace(result.fallback || 'default', true);
 }
 
 // ============ 初始化 ============
@@ -5211,6 +5513,84 @@ function addTriangleElement() {
   canvas.requestRenderAll();
   pushHistory();
   scheduleAutoSave();
+}
+
+// 形状预设配置，便于后续扩展更多形状
+const SHAPE_PRESETS = [
+  { name: 'rect', labelKey: 'shape.rect', icon: 'rectangle' },
+  { name: 'circle', labelKey: 'shape.circle', icon: 'circle' },
+  { name: 'triangle', labelKey: 'shape.triangle', icon: 'change_history' }
+];
+
+// 统一插入形状入口
+function addShapeElement(type) {
+  if (!canvas) return;
+  switch (type) {
+    case 'rect':
+      addRectElement();
+      break;
+    case 'circle':
+      addCircleElement();
+      break;
+    case 'triangle':
+      addTriangleElement();
+      break;
+    default:
+      console.warn('Unknown shape type:', type);
+  }
+}
+
+function openShapePicker() {
+  if (!canvas) return;
+  const modal = document.getElementById('shapePickerModal');
+  if (!modal) return;
+  applyI18n(modal);
+  modal.style.display = 'flex';
+  renderShapeGrid();
+}
+
+function closeShapePicker() {
+  const modal = document.getElementById('shapePickerModal');
+  if (modal) {
+    const content = modal.querySelector('.modal-content');
+    modal.classList.add('closing');
+    if (content) content.classList.add('closing');
+
+    const onAnimationEnd = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+        if (content) content.classList.remove('closing');
+        modal.removeEventListener('animationend', onAnimationEnd);
+      }
+    };
+    modal.addEventListener('animationend', onAnimationEnd);
+  }
+}
+
+function renderShapeGrid() {
+  const grid = document.getElementById('shapeGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  SHAPE_PRESETS.forEach(preset => {
+    const card = document.createElement('div');
+    card.className = 'component-card';
+    card.style.cssText = 'cursor:pointer; padding:16px; border:1px solid var(--border); border-radius:var(--radius); text-align:center; transition:all 0.2s; background:var(--bg-surface);';
+    card.onmouseenter = () => { card.style.borderColor = 'var(--accent)'; };
+    card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; };
+    const label = t(preset.labelKey);
+    card.innerHTML = `
+      <div style="font-size:36px; margin-bottom:8px; color:var(--accent);">
+        <span class="material-symbols-rounded" style="font-size:36px;">${preset.icon}</span>
+      </div>
+      <div style="font-size:13px; font-weight:500;">${label !== preset.labelKey ? label : preset.label}</div>
+    `;
+    card.onclick = () => {
+      addShapeElement(preset.name);
+      closeShapePicker();
+    };
+    grid.appendChild(card);
+  });
 }
 
 async function addImageToCanvas(src) {
@@ -9767,6 +10147,19 @@ function removeComponentArrayItem(path, index) {
   </div>
 </div>
 
+<!-- 形状选择器模态框 -->
+<div id="shapePickerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeShapePicker()">
+  <div class="modal-content" style="width: 560px; max-width: 90vw; max-height: 85vh;">
+    <div class="modal-header">
+      <h3 data-i18n="shape.modalTitle">插入形状</h3>
+      <button class="modal-close-btn" onclick="closeShapePicker()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px; overflow-y: auto;">
+      <div id="shapeGrid" class="components-grid"></div>
+    </div>
+  </div>
+</div>
+
 <!-- 撤销删除幻灯片 Toast 提示 -->
 <div id="slideDeleteToast" class="toast-notification">
   <span class="material-symbols-rounded" style="color:var(--accent); font-size:18px;">delete_sweep</span>
@@ -10554,7 +10947,7 @@ function rebuild3DScene(obj) {
   item.querySelectorAll('script').forEach(oldScript => {
     const newScript = document.createElement('script');
     Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+    newScript.text = oldScript.textContent;
     oldScript.parentNode.replaceChild(newScript, oldScript);
   });
 }
