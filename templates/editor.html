@@ -10,6 +10,7 @@
 <link href="/static/icons/material-icons/icons.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="/static/js/fabric.min.js"></script>
+  <script src="/static/js/three.min.js"></script>
 <script src="/static/js/i18n.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -1563,7 +1564,7 @@ select.form-control {
 /* ===== 组件选择器样式 ===== */
 .components-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
@@ -1587,7 +1588,7 @@ select.form-control {
 }
 
 .component-card-preview-container {
-  height: 180px;
+  height: 140px;
   background: #fafaf8;
   border-bottom: 1px solid var(--border);
   overflow: hidden;
@@ -2278,6 +2279,10 @@ select.form-control {
         <span class="material-symbols-rounded">change_history</span>
         <span data-i18n="toolbar.triangle">三角</span>
       </button>
+      <button class="toolbar-btn" onclick="open3DPicker()" title="添加 3D 元素" data-i18n-title="toolbar.threeDTitle">
+        <span class="material-symbols-rounded">view_in_ar</span>
+        <span data-i18n="toolbar.threeD">3D</span>
+      </button>
 
       <div class="toolbar-divider"></div>
 
@@ -2561,6 +2566,7 @@ const SNAP_THRESHOLD = 6;
 let dataVersion = slidesData._version || 0;
 let versionCheckInterval = null;
 let saveStatusState = 'ready';
+let isSaving = false;
 let originalSlidesData = JSON.parse(JSON.stringify(slidesData));
 let externalModifiedSlideIds = new Set();
 let locallyModifiedSlideIds = new Set();
@@ -2998,29 +3004,71 @@ function syncHtmlPreviewLayer() {
   layer.style.width = `${CANVAS_BASE_WIDTH}px`;
   layer.style.height = `${CANVAS_BASE_HEIGHT}px`;
   layer.style.transform = `scale(${currentCanvasScale})`;
-  layer.innerHTML = '';
 
+  const currentIds = new Set();
+  
   canvas.getObjects().forEach((obj, index) => {
     if (obj.elementType !== 'html') return;
-    const item = document.createElement('div');
-    item.className = 'html-preview-item';
-    item.dataset.id = obj.id || '';
+    if (!obj.id) return;
+    currentIds.add(obj.id);
+    
+    let item = layer.querySelector(`.html-preview-item[data-id="${obj.id}"]`);
+    let isNew = false;
+    
+    if (!item) {
+      item = document.createElement('div');
+      item.className = 'html-preview-item';
+      item.dataset.id = obj.id;
+      item.style.position = 'absolute';
+      item.style.transformOrigin = 'center center';
+      item.innerHTML = `${obj.css ? `<style>${obj.css}</style>` : ''}${obj.html || ''}`;
+      isNew = true;
+    }
+
     item.style.left = `${obj.left || 0}px`;
     item.style.top = `${obj.top || 0}px`;
     item.style.width = `${Math.max(1, obj.width || 1)}px`;
     item.style.height = `${Math.max(1, obj.height || 1)}px`;
     item.style.opacity = String(obj.opacity ?? 1);
     item.style.zIndex = String(index + 1);
-    
+
     const scaleX = obj.scaleX || 1;
     const scaleY = obj.scaleY || 1;
     item.style.transform = `scale(${scaleX}, ${scaleY}) rotate(${obj.angle || 0}deg)`;
-    
-    item.innerHTML = `${obj.css ? `<style>${obj.css}</style>` : ''}${obj.html || ''}`;
-    layer.appendChild(item);
+
+    const is3D = obj.meta && (obj.meta.role === '3d' || obj.meta.component);
+
+    if (isNew) {
+      layer.appendChild(item);
+      // Execute scripts (since innerHTML doesn't automatically run scripts)
+      if (is3D) {
+        item.querySelectorAll('script').forEach(oldScript => {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+      }
+    } else {
+      if (is3D) {
+        item.querySelectorAll('.three-host').forEach(host => {
+          if (host.__threeResize) { try { host.__threeResize(); } catch(e) {} }
+        });
+      }
+    }
+  });
+
+  // 清理不再存在的 html 元素（含 3D cleanup）
+  layer.querySelectorAll('.html-preview-item').forEach(item => {
+    const id = item.dataset.id;
+    if (id && !currentIds.has(id)) {
+      item.querySelectorAll('.three-host').forEach(host => {
+        if (host.__threeCleanup) { try { host.__threeCleanup(); } catch(e) {} host.__threeCleanup = null; }
+      });
+      item.remove();
+    }
   });
 }
-
 function ensureHtmlPreviewLayer() {
   const frame = document.getElementById('canvasFrame');
   if (!frame) return null;
@@ -5913,6 +5961,7 @@ function renderPropsForm(obj) {
   const isRect = obj.type === 'rect';
   const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle';
   const isHtml = obj.elementType === 'html';
+  const is3D = isHtml && obj.meta && obj.meta.role === '3d';
   const opacity = obj.opacity ?? 1;
   const locked = !!obj.lockMovementX;
 
@@ -5967,8 +6016,8 @@ function renderPropsForm(obj) {
 
     ${isText ? renderTextProps(obj) : ''}
     ${isImage ? renderImageProps(obj) : ''}
-    ${isShape ? renderShapeProps(obj, isRect) : ''}
-    ${isHtml ? renderHtmlProps(obj) : ''}
+    ${isShape && !is3D ? renderShapeProps(obj, isRect) : ''}
+    ${is3D ? render3DProps(obj) : (isHtml ? renderHtmlProps(obj) : '')}
 
     <!-- 图层控制 -->
     <div class="props-section">
@@ -6013,6 +6062,10 @@ function renderPropsForm(obj) {
 
 function getTypeLabel(type, obj) {
   if (obj && obj.elementType === 'html') {
+    if (obj.meta && obj.meta.role === '3d') {
+      const label3D = t('props.type3D');
+      return label3D !== 'props.type3D' ? label3D : '3D 元素';
+    }
     if (obj.meta && obj.meta.component) {
       return (t('props.type.component') !== 'props.type.component' ? t('props.type.component') : '组件') + ' (' + obj.meta.component + ')';
     }
@@ -6808,6 +6861,7 @@ async function saveNow() {
   }
 
   updateSaveStatus('saving');
+  isSaving = true;
 
   try {
     const resp = await fetch(apiUrl('/api/slides'), {
@@ -6817,8 +6871,13 @@ async function saveNow() {
     });
     if (resp.ok) {
       const result = await resp.json();
-      // 重新读取数据以获取服务端更新的版本号
+      // 立即同步服务端返回的版本号，消除 GET freshData 前的竞态窗口
+      dataVersion = result._version || 0;
+      slidesData._version = dataVersion;
+
+      // 重新读取数据以刷新本地原始快照
       const freshData = await fetch(apiUrl('/api/slides')).then(r => r.json());
+      slidesData = freshData;
       dataVersion = freshData._version || 0;
       slidesData._version = dataVersion;
       originalSlidesData = JSON.parse(JSON.stringify(slidesData));
@@ -6829,6 +6888,8 @@ async function saveNow() {
     }
   } catch (e) {
     updateSaveStatus('error');
+  } finally {
+    isSaving = false;
   }
 }
 
@@ -7460,6 +7521,7 @@ setTimeout(updateHistoryButtonBadge, 100);
 
 // ============ 外部修改检测 ============
 async function checkDataVersion() {
+  if (isSaving) return;
   try {
     const resp = await fetch(apiUrl('/api/version'));
     if (!resp.ok) return;
@@ -8186,7 +8248,7 @@ async function renderComponentsGrid() {
     
     card.innerHTML = `
       <div class="component-card-preview-container">
-        <div class="component-card-preview-scaler" style="transform: scale(0.33);">
+        <div class="component-card-preview-scaler" style="transform: scale(0.25);">
           <div class="preview-html-wrapper" style="left:${left}px; top:${top}px; width:${width}px; height:${height}px; overflow:hidden;">
             ${comp.html || ''}
           </div>
@@ -9740,5 +9802,834 @@ function removeComponentArrayItem(path, index) {
   </div>
 </div>
 
+<script>
+
+// ===== 3D 元素（Three.js）=====
+const THREE_D_PRESETS = [
+  { name: 'cube', icon: 'widgets', labelKey: 'threeD.cube', label: '立方体' },
+  { name: 'sphere', icon: 'circle', labelKey: 'threeD.sphere', label: '球体' },
+  { name: 'torus', icon: 'donut_large', labelKey: 'threeD.torus', label: '圆环' },
+  { name: 'cylinder', icon: 'database', labelKey: 'threeD.cylinder', label: '圆柱' },
+  { name: 'cone', icon: 'change_history', labelKey: 'threeD.cone', label: '圆锥' },
+  { name: 'icosahedron', icon: 'pentagon', labelKey: 'threeD.icosahedron', label: '二十面体' },
+  { name: 'particles', icon: 'grain', labelKey: 'threeD.particles', label: '粒子系统' },
+  { name: 'galaxy', icon: 'cyclone', labelKey: 'threeD.galaxy', label: '星系粒子' },
+  { name: 'waves', icon: 'waves', labelKey: 'threeD.waves', label: '动态波浪' },
+  { name: 'network', icon: 'hub', labelKey: 'threeD.network', label: '科技网络' },
+  { name: 'custom', icon: 'code', labelKey: 'threeD.custom', label: '自定义代码' }
+];
+
+const THREE_D_DEFAULT_DATA = {
+  geometry: 'cube',
+  color: '#C5E803',
+  autoRotate: true,
+  rotateSpeed: 0.01,
+  metalness: 0.4,
+  roughness: 0.4,
+  wireframe: false,
+  background: 'transparent'
+};
+
+const THREE_D_CSS = '.three-canvas{width:100%;height:100%;display:block}';
+
+function _gen3DUid() {
+  return 'three-' + Date.now() + '-' + Math.round(Math.random() * 1000);
+}
+
+function _threeGeometryCode(geometry) {
+  switch (geometry) {
+    case 'cube': return 'var geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);';
+    case 'sphere': return 'var geometry = new THREE.SphereGeometry(1, 48, 32);';
+    case 'torus': return 'var geometry = new THREE.TorusGeometry(1, 0.35, 24, 80);';
+    case 'cylinder': return 'var geometry = new THREE.CylinderGeometry(0.8, 0.8, 1.8, 48);';
+    case 'cone': return 'var geometry = new THREE.ConeGeometry(1, 1.8, 48);';
+    case 'icosahedron': return 'var geometry = new THREE.IcosahedronGeometry(1.2, 0);';
+    default: return 'var geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);';
+  }
+}
+
+function generateThreeJSCode(data, uid) {
+  if (!uid) uid = _gen3DUid();
+  data = data || THREE_D_DEFAULT_DATA;
+  const geometry = data.geometry || 'cube';
+  const color = (data.color || '#C5E803').lstrip ? data.color.lstrip('#') : (data.color || '#C5E803').replace(/^#/, '');
+  const autoRotate = data.autoRotate !== false ? 'true' : 'false';
+  const rotateSpeed = parseFloat(data.rotateSpeed ?? 0.01);
+  const metalness = parseFloat(data.metalness ?? 0.4);
+  const roughness = parseFloat(data.roughness ?? 0.4);
+  const wireframe = data.wireframe ? 'true' : 'false';
+  const background = data.background || 'transparent';
+
+  if (geometry === 'particles') {
+    return _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background);
+  }
+  if (geometry === 'galaxy') {
+    return _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background);
+  }
+  if (geometry === 'waves') {
+    return _generateWavesCode(uid, color, autoRotate, rotateSpeed, background);
+  }
+  if (geometry === 'network') {
+    return _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background);
+  }
+
+  const geomCode = _threeGeometryCode(geometry);
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,4);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setSize(w,h,false);
+renderer.setPixelRatio(window.devicePixelRatio||1);
+${bgClear}
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);
+${geomCode}
+var material=new THREE.MeshStandardMaterial({color:${colorJs},metalness:${metalness},roughness:${roughness},wireframe:${wireframe}});
+var mesh=new THREE.Mesh(geometry,material);
+scene.add(mesh);
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+function animate(){
+animId=requestAnimationFrame(animate);
+if(autoRotate){mesh.rotation.x+=rotateSpeed;mesh.rotation.y+=rotateSpeed;}
+renderer.render(scene,camera);
+}
+animate();
+function onResize(){
+var nw=host.clientWidth||w,nh=host.clientHeight||h;
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threeCleanup=function(){
+if(animId)cancelAnimationFrame(animId);
+try{geometry.dispose();material.dispose();renderer.dispose();}catch(e){}
+host.__threeResize=null;
+};
+})();`;
+
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div>' + '<scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+function _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,5);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setSize(w,h,false);
+renderer.setPixelRatio(window.devicePixelRatio||1);
+${bgClear}
+var count=600;
+var positions=new Float32Array(count*3);
+for(var i=0;i<count;i++){positions[i*3]=(Math.random()-0.5)*4;positions[i*3+1]=(Math.random()-0.5)*4;positions[i*3+2]=(Math.random()-0.5)*4;}
+var geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+var mat=new THREE.PointsMaterial({color:${colorJs},size:0.06,transparent:true,opacity:0.85});
+var points=new THREE.Points(geo,mat);
+scene.add(points);
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+function animate(){
+animId=requestAnimationFrame(animate);
+if(autoRotate){points.rotation.y+=rotateSpeed;points.rotation.x+=rotateSpeed*0.5;}
+renderer.render(scene,camera);
+}
+animate();
+function onResize(){
+var nw=host.clientWidth||w,nh=host.clientHeight||h;
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threeCleanup=function(){
+if(animId)cancelAnimationFrame(animId);
+try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
+host.__threeResize=null;
+};
+})();`;
+
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div>' + '<scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+
+function _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);
+camera.position.set(0,3,5);
+camera.lookAt(0,0,0);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setSize(w,h,false);
+renderer.setPixelRatio(window.devicePixelRatio||1);
+${bgClear}
+var count=2000;
+var positions=new Float32Array(count*3);
+var colors=new Float32Array(count*3);
+var colorObj=new THREE.Color(${colorJs});
+var branches=3;
+for(var i=0;i<count;i++){
+  var radius=Math.random()*4;
+  var spinAngle=radius*2;
+  var branchAngle=((i%branches)/branches)*Math.PI*2;
+  var randomX=Math.pow(Math.random(),3)*(Math.random()<0.5?1:-1)*0.5*(4-radius);
+  var randomY=Math.pow(Math.random(),3)*(Math.random()<0.5?1:-1)*0.5*(4-radius);
+  var randomZ=Math.pow(Math.random(),3)*(Math.random()<0.5?1:-1)*0.5*(4-radius);
+  positions[i*3]=Math.cos(branchAngle+spinAngle)*radius+randomX;
+  positions[i*3+1]=randomY;
+  positions[i*3+2]=Math.sin(branchAngle+spinAngle)*radius+randomZ;
+  
+  var mixColor=colorObj.clone();
+  mixColor.lerp(new THREE.Color(0xffffff), Math.random()*0.4);
+  colors[i*3]=mixColor.r;
+  colors[i*3+1]=mixColor.g;
+  colors[i*3+2]=mixColor.b;
+}
+var geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+var mat=new THREE.PointsMaterial({size:0.04,vertexColors:true,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false});
+var points=new THREE.Points(geo,mat);
+scene.add(points);
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+function animate(){
+animId=requestAnimationFrame(animate);
+if(autoRotate){points.rotation.y+=rotateSpeed*0.8;}
+renderer.render(scene,camera);
+}
+animate();
+function onResize(){
+var nw=host.clientWidth||w,nh=host.clientHeight||h;
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threeCleanup=function(){
+if(animId)cancelAnimationFrame(animId);
+try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
+host.__threeResize=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+function _generateWavesCode(uid, color, autoRotate, rotateSpeed, background) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(45,w/h,0.1,1000);
+camera.position.set(0,3,6);
+camera.lookAt(0,0,0);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setSize(w,h,false);
+renderer.setPixelRatio(window.devicePixelRatio||1);
+${bgClear}
+var SEPARATION=0.3, AMOUNTX=30, AMOUNTY=30;
+var numParticles=AMOUNTX*AMOUNTY;
+var positions=new Float32Array(numParticles*3);
+var i=0;
+for(var ix=0;ix<AMOUNTX;ix++){
+  for(var iy=0;iy<AMOUNTY;iy++){
+    positions[i]=ix*SEPARATION-((AMOUNTX*SEPARATION)/2);
+    positions[i+1]=0;
+    positions[i+2]=iy*SEPARATION-((AMOUNTY*SEPARATION)/2);
+    i+=3;
+  }
+}
+var geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+var mat=new THREE.PointsMaterial({color:${colorJs},size:0.08,transparent:true,opacity:0.8});
+var points=new THREE.Points(geo,mat);
+scene.add(points);
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var count=0;
+function animate(){
+animId=requestAnimationFrame(animate);
+var positions=geo.attributes.position.array;
+var i=0;
+for(var ix=0;ix<AMOUNTX;ix++){
+  for(var iy=0;iy<AMOUNTY;iy++){
+    positions[i+1]=(Math.sin((ix+count)*0.5)*0.5)+(Math.sin((iy+count)*0.5)*0.5);
+    i+=3;
+  }
+}
+geo.attributes.position.needsUpdate=true;
+count+=0.05;
+if(autoRotate){points.rotation.y+=rotateSpeed*0.5;}
+renderer.render(scene,camera);
+}
+animate();
+function onResize(){
+var nw=host.clientWidth||w,nh=host.clientHeight||h;
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threeCleanup=function(){
+if(animId)cancelAnimationFrame(animId);
+try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
+host.__threeResize=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+function _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,6);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setSize(w,h,false);
+renderer.setPixelRatio(window.devicePixelRatio||1);
+${bgClear}
+var group=new THREE.Group();
+scene.add(group);
+var particles=100;
+var geometry=new THREE.BufferGeometry();
+var positions=new Float32Array(particles*3);
+var velocities=[];
+for(var i=0;i<particles;i++){
+  positions[i*3]=(Math.random()-0.5)*8;
+  positions[i*3+1]=(Math.random()-0.5)*8;
+  positions[i*3+2]=(Math.random()-0.5)*8;
+  velocities.push({
+    x:(Math.random()-0.5)*0.02,
+    y:(Math.random()-0.5)*0.02,
+    z:(Math.random()-0.5)*0.02
+  });
+}
+geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+var pMaterial=new THREE.PointsMaterial({color:${colorJs},size:0.1,transparent:true,opacity:0.8});
+var particleSystem=new THREE.Points(geometry,pMaterial);
+group.add(particleSystem);
+var lineGeometry=new THREE.BufferGeometry();
+var linePositions=new Float32Array(particles*particles*3);
+lineGeometry.setAttribute('position',new THREE.BufferAttribute(linePositions,3));
+var lineMaterial=new THREE.LineBasicMaterial({color:${colorJs},transparent:true,opacity:0.2});
+var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
+group.add(lines);
+
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+function animate(){
+animId=requestAnimationFrame(animate);
+var vertexpos=0;
+var pos=geometry.attributes.position.array;
+for(var i=0;i<particles;i++){
+  pos[i*3]+=velocities[i].x;
+  pos[i*3+1]+=velocities[i].y;
+  pos[i*3+2]+=velocities[i].z;
+  if(pos[i*3]<-4||pos[i*3]>4) velocities[i].x*=-1;
+  if(pos[i*3+1]<-4||pos[i*3+1]>4) velocities[i].y*=-1;
+  if(pos[i*3+2]<-4||pos[i*3+2]>4) velocities[i].z*=-1;
+}
+geometry.attributes.position.needsUpdate=true;
+
+var numConnected=0;
+for(var i=0;i<particles;i++){
+  for(var j=i+1;j<particles;j++){
+    var dx=pos[i*3]-pos[j*3];
+    var dy=pos[i*3+1]-pos[j*3+1];
+    var dz=pos[i*3+2]-pos[j*3+2];
+    var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(dist<1.5){
+      linePositions[vertexpos++]=pos[i*3];
+      linePositions[vertexpos++]=pos[i*3+1];
+      linePositions[vertexpos++]=pos[i*3+2];
+      linePositions[vertexpos++]=pos[j*3];
+      linePositions[vertexpos++]=pos[j*3+1];
+      linePositions[vertexpos++]=pos[j*3+2];
+      numConnected++;
+    }
+  }
+}
+lines.geometry.setDrawRange(0,numConnected*2);
+lines.geometry.attributes.position.needsUpdate=true;
+
+if(autoRotate){group.rotation.y+=rotateSpeed;group.rotation.x+=rotateSpeed*0.3;}
+renderer.render(scene,camera);
+}
+animate();
+function onResize(){
+var nw=host.clientWidth||w,nh=host.clientHeight||h;
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threeCleanup=function(){
+if(animId)cancelAnimationFrame(animId);
+try{
+  geometry.dispose();
+  lineGeometry.dispose();
+  pMaterial.dispose();
+  lineMaterial.dispose();
+  renderer.dispose();
+}catch(e){}
+host.__threeResize=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+
+function open3DPicker() {
+  if (!canvas) return;
+  const modal = document.getElementById('threeDPickerModal');
+  if (!modal) return;
+  applyI18n(modal);
+  modal.style.display = 'flex';
+  render3DGrid();
+}
+
+function close3DPicker() {
+  const modal = document.getElementById('threeDPickerModal');
+  if (modal) {
+    const content = modal.querySelector('.modal-content');
+    modal.classList.add('closing');
+    if (content) content.classList.add('closing');
+    const onAnimationEnd = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+        if (content) content.classList.remove('closing');
+        modal.removeEventListener('animationend', onAnimationEnd);
+      }
+    };
+    modal.addEventListener('animationend', onAnimationEnd);
+  }
+}
+
+function render3DGrid() {
+  const grid = document.getElementById('threeDGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  THREE_D_PRESETS.forEach(preset => {
+    const card = document.createElement('div');
+    card.className = 'component-card';
+    card.style.cssText = 'cursor:pointer; padding:16px; border:1px solid var(--border); border-radius:var(--radius); text-align:center; transition:all 0.2s; background:var(--bg-surface);';
+    card.onmouseenter = () => { card.style.borderColor = 'var(--accent)'; };
+    card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; };
+    const label = t(preset.labelKey);
+    card.innerHTML = `
+      <div style="font-size:36px; margin-bottom:8px; color:var(--accent);">
+        <span class="material-symbols-rounded" style="font-size:36px;">${preset.icon}</span>
+      </div>
+      <div style="font-size:13px; font-weight:500;">${label !== preset.labelKey ? label : preset.label}</div>
+    `;
+    card.onclick = () => {
+      if (preset.name === 'custom') {
+        close3DPicker();
+        open3DCodeEditor(null);
+      } else {
+        add3DElement(preset.name);
+        close3DPicker();
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+function add3DElement(presetName) {
+  if (!canvas) return;
+  const width = 240;
+  const height = 240;
+  const uid = _gen3DUid();
+  const data = Object.assign({}, THREE_D_DEFAULT_DATA, { geometry: presetName });
+  const html = generateThreeJSCode(data, uid);
+
+  const htmlBox = new fabric.Rect({
+    left: (canvas.width - width) / 2,
+    top: (canvas.height - height) / 2,
+    width: width,
+    height: height,
+    fill: 'transparent',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    rx: 0,
+    ry: 0,
+    cornerColor: 'rgba(0,0,0,0.5)',
+    transparentCorners: false,
+    cornerSize: 8,
+    padding: 0,
+    hasBorders: true,
+    hasControls: true
+  });
+  htmlBox.id = 'elem-' + Date.now() + '-' + Math.round(Math.random() * 10000);
+  htmlBox.elementType = 'html';
+  htmlBox.html = html;
+  htmlBox.css = THREE_D_CSS;
+  htmlBox.meta = {
+    role: '3d',
+    component: presetName,
+    data: data,
+    uid: uid
+  };
+
+  canvas.add(htmlBox);
+  canvas.setActiveObject(htmlBox);
+  canvas.requestRenderAll();
+  
+  ensureHtmlPreviewLayer();
+  pushHistory();
+  scheduleAutoSave();
+}
+
+function add3DCustomElement(code) {
+  if (!canvas || !code) return;
+  const width = 240;
+  const height = 240;
+  const uid = _gen3DUid();
+
+  const htmlBox = new fabric.Rect({
+    left: (canvas.width - width) / 2,
+    top: (canvas.height - height) / 2,
+    width: width,
+    height: height,
+    fill: 'transparent',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    rx: 0,
+    ry: 0,
+    cornerColor: 'rgba(0,0,0,0.5)',
+    transparentCorners: false,
+    cornerSize: 8,
+    padding: 0,
+    hasBorders: true,
+    hasControls: true
+  });
+  htmlBox.id = 'elem-' + Date.now() + '-' + Math.round(Math.random() * 10000);
+  htmlBox.elementType = 'html';
+  htmlBox.html = code;
+  htmlBox.css = THREE_D_CSS;
+  htmlBox.meta = {
+    role: '3d',
+    component: 'custom',
+    data: Object.assign({}, THREE_D_DEFAULT_DATA, { geometry: 'custom' }),
+    uid: uid
+  };
+
+  canvas.add(htmlBox);
+  canvas.setActiveObject(htmlBox);
+  canvas.requestRenderAll();
+  
+  ensureHtmlPreviewLayer();
+  pushHistory();
+  scheduleAutoSave();
+}
+
+function render3DProps(obj) {
+  const data = (obj.meta && obj.meta.data) || {};
+  const geometry = data.geometry || 'cube';
+  const color = data.color || '#C5E803';
+  const autoRotate = data.autoRotate !== false;
+  const rotateSpeed = data.rotateSpeed ?? 0.01;
+  const metalness = data.metalness ?? 0.4;
+  const roughness = data.roughness ?? 0.4;
+  const wireframe = data.wireframe || false;
+
+  const isCustom = geometry === 'custom';
+
+  const geometryOptions = [
+    { value: 'cube', label: t('threeD.cube') },
+    { value: 'sphere', label: t('threeD.sphere') },
+    { value: 'torus', label: t('threeD.torus') },
+    { value: 'cylinder', label: t('threeD.cylinder') },
+    { value: 'cone', label: t('threeD.cone') },
+    { value: 'icosahedron', label: t('threeD.icosahedron') },
+    { value: 'particles', label: t('threeD.particles') },
+    { value: 'galaxy', label: t('threeD.galaxy') },
+    { value: 'waves', label: t('threeD.waves') },
+    { value: 'network', label: t('threeD.network') }
+  ];
+
+  const sectionTitle = t('props.section.threeDProps');
+  const geometryLabel = t('props.label.geometry');
+  const colorLabel = t('props.label.fillColor');
+  const autoRotateLabel = t('props.label.autoRotate');
+  const rotateSpeedLabel = t('props.label.rotateSpeed');
+  const metalnessLabel = t('props.label.metalness');
+  const roughnessLabel = t('props.label.roughness');
+  const wireframeLabel = t('props.label.wireframe');
+  const editCodeLabel = t('props.label.editCode');
+
+  return `
+    <div class="props-section">
+      <div class="props-section-title">${sectionTitle !== 'props.section.threeDProps' ? sectionTitle : '3D 属性'}</div>
+      ${!isCustom ? `
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>${geometryLabel !== 'props.label.geometry' ? geometryLabel : '几何体'}</label>
+        <select class="form-control" onchange="apply3DProp('geometry', this.value)">
+          ${geometryOptions.map(opt => `<option value="${opt.value}" ${opt.value === geometry ? 'selected' : ''}>${opt.label !== ('threeD.' + opt.value) ? opt.label : opt.value}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>${colorLabel !== 'props.label.fillColor' ? colorLabel : '颜色'}</label>
+          <div class="color-input-wrap">
+            <input type="color" id="prop3DColor" value="${color}" oninput="apply3DProp('color', this.value)" ${obj.meta && obj.meta.colorThemeLink ? 'disabled' : ''}>
+            <input type="text" class="form-control color-hex" value="${color}" oninput="apply3DProp('color', this.value)" ${obj.meta && obj.meta.colorThemeLink ? 'disabled' : ''}>
+          </div>
+          <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
+            <input type="checkbox" id="prop3DColorThemeLink" ${(obj.meta && obj.meta.colorThemeLink) ? 'checked' : ''} onchange="toggle3DThemeLink(this.checked)">
+            ${t('props.label.useThemeColor')}
+          </label>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="prop3DAutoRotate" ${autoRotate ? 'checked' : ''} onchange="apply3DProp('autoRotate', this.checked)">
+          ${autoRotateLabel !== 'props.label.autoRotate' ? autoRotateLabel : '自动旋转'}
+        </label>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>${rotateSpeedLabel !== 'props.label.rotateSpeed' ? rotateSpeedLabel : '旋转速度'}</label>
+        <div class="range-group">
+          <input type="range" id="prop3DRotateSpeed" min="0" max="0.1" step="0.001" value="${rotateSpeed}" oninput="document.getElementById('prop3DRotateSpeedVal').textContent=this.value; apply3DProp('rotateSpeed', parseFloat(this.value))">
+          <span class="range-value" id="prop3DRotateSpeedVal">${rotateSpeed}</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>${metalnessLabel !== 'props.label.metalness' ? metalnessLabel : '金属度'}</label>
+        <div class="range-group">
+          <input type="range" id="prop3DMetalness" min="0" max="1" step="0.05" value="${metalness}" oninput="document.getElementById('prop3DMetalnessVal').textContent=this.value; apply3DProp('metalness', parseFloat(this.value))">
+          <span class="range-value" id="prop3DMetalnessVal">${metalness}</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>${roughnessLabel !== 'props.label.roughness' ? roughnessLabel : '粗糙度'}</label>
+        <div class="range-group">
+          <input type="range" id="prop3DRoughness" min="0" max="1" step="0.05" value="${roughness}" oninput="document.getElementById('prop3DRoughnessVal').textContent=this.value; apply3DProp('roughness', parseFloat(this.value))">
+          <span class="range-value" id="prop3DRoughnessVal">${roughness}</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="prop3DWireframe" ${wireframe ? 'checked' : ''} onchange="apply3DProp('wireframe', this.checked)">
+          ${wireframeLabel !== 'props.label.wireframe' ? wireframeLabel : '线框模式'}
+        </label>
+      </div>
+      ` : ''}
+      <div class="form-group">
+        <button class="btn" style="width:100%;" onclick="open3DCodeEditor(canvas.getActiveObject())">
+          <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle;">code</span>
+          ${editCodeLabel !== 'props.label.editCode' ? editCodeLabel : '编辑代码'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function apply3DProp(propName, value) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj || !obj.meta || obj.meta.role !== '3d') return;
+
+  obj.meta.data = obj.meta.data || {};
+  obj.meta.data[propName] = value;
+
+  // 重新生成 html 代码（自定义代码不重新生成）
+  if (obj.meta.data.geometry !== 'custom') {
+    const uid = obj.meta.uid || _gen3DUid();
+    obj.meta.uid = uid;
+    obj.html = generateThreeJSCode(obj.meta.data, uid);
+  }
+
+  // 重建 DOM 覆盖层中的 3D 场景
+  rebuild3DScene(obj);
+  
+  scheduleAutoSave();
+}
+
+let _editing3DObj = null;
+
+function open3DCodeEditor(obj) {
+  const modal = document.getElementById('threeDCodeModal');
+  if (!modal) return;
+  _editing3DObj = obj;
+  const area = document.getElementById('threeDCodeArea');
+  if (area) {
+    area.value = (obj && obj.html) || '';
+  }
+  applyI18n(modal);
+  modal.style.display = 'flex';
+}
+
+function close3DCodeEditor() {
+  const modal = document.getElementById('threeDCodeModal');
+  if (modal) modal.style.display = 'none';
+  _editing3DObj = null;
+}
+
+function save3DCode() {
+  const area = document.getElementById('threeDCodeArea');
+  if (!area || !_editing3DObj) { close3DCodeEditor(); return; }
+  const code = area.value.trim();
+  if (!code) { close3DCodeEditor(); return; }
+
+  _editing3DObj.html = code;
+  _editing3DObj.meta = _editing3DObj.meta || {};
+  _editing3DObj.meta.data = _editing3DObj.meta.data || {};
+  _editing3DObj.meta.data.geometry = 'custom';
+  _editing3DObj.meta.component = 'custom';
+
+  rebuild3DScene(_editing3DObj);
+  
+  pushHistory();
+  scheduleAutoSave();
+  close3DCodeEditor();
+  // 刷新属性面板
+  if (typeof renderPropsForm === 'function' && canvas.getActiveObject()) {
+    renderPropsForm();
+  }
+}
+
+function rebuild3DScene(obj) {
+  const layer = ensureHtmlPreviewLayer();
+  if (!layer || !obj.id) return;
+  const item = layer.querySelector(`.html-preview-item[data-id="${obj.id}"]`);
+  if (!item) return;
+  item.querySelectorAll('.three-host').forEach(host => {
+    if (host.__threeCleanup) { try { host.__threeCleanup(); } catch(e) {} host.__threeCleanup = null; }
+  });
+  item.innerHTML = `${obj.css ? `<style>${obj.css}</style>` : ''}${obj.html || ''}`;
+  item.querySelectorAll('script').forEach(oldScript => {
+    const newScript = document.createElement('script');
+    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+    newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+}
+
+function toggle3DThemeLink(checked) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj || !obj.meta || obj.meta.role !== '3d') return;
+
+  obj.meta.colorThemeLink = !!checked;
+  
+  if (checked) {
+    const accentColor = getComputedStyle(document.body).getPropertyValue('--accent').trim();
+    obj.meta.data = obj.meta.data || {};
+    obj.meta.data.color = accentColor;
+    
+    // 更新颜色输入框
+    const pColor = document.getElementById('prop3DColor');
+    const pColorHex = document.querySelector('#prop3DColor + input, #prop3DColor ~ .color-hex');
+    if (pColor) { pColor.value = hexToColorInput(accentColor); pColor.disabled = true; }
+    const hexInputs = document.querySelectorAll('.form-row .color-hex');
+    hexInputs.forEach(el => { if (el.offsetParent && el.closest('.props-section')) { el.value = accentColor; el.disabled = true; } });
+
+    // 重新生成 3D 代码并重建场景
+    if (obj.meta.data.geometry !== 'custom') {
+      const uid = obj.meta.uid || _gen3DUid();
+      obj.meta.uid = uid;
+      obj.html = generateThreeJSCode(obj.meta.data, uid);
+    }
+    rebuild3DScene(obj);
+  } else {
+    // 启用颜色输入
+    const pColor = document.getElementById('prop3DColor');
+    if (pColor) pColor.disabled = false;
+    const hexInputs = document.querySelectorAll('.form-row .color-hex');
+    hexInputs.forEach(el => { if (el.offsetParent && el.closest('.props-section')) { el.disabled = false; } });
+  }
+  scheduleAutoSave();
+}
+
+
+</script>
+
+<!-- 3D 元素选择面板 -->
+<div id="threeDPickerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) close3DPicker()">
+  <div class="modal-content" style="width: 640px; max-width: 90vw; max-height: 85vh;">
+    <div class="modal-header">
+      <h3 data-i18n="threeD.modalTitle">添加 3D 元素</h3>
+      <button class="modal-close-btn" onclick="close3DPicker()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px; overflow-y: auto;">
+      <div id="threeDGrid" class="components-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <!-- 动态渲染 3D 预设 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3D 代码编辑器 -->
+<div id="threeDCodeModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) close3DCodeEditor()">
+  <div class="modal-content" style="width: 800px; max-width: 90vw; max-height: 85vh;">
+    <div class="modal-header">
+      <h3 data-i18n="threeD.codeEditorTitle">编辑 3D 代码</h3>
+      <button class="modal-close-btn" onclick="close3DCodeEditor()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 16px;">
+      <textarea id="threeDCodeArea" style="width: 100%; height: 50vh; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); resize: vertical; background: var(--bg-surface); color: var(--text);" placeholder="粘贴 Three.js 代码..."></textarea>
+    </div>
+    <div class="modal-footer" style="padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px;">
+      <button class="btn" onclick="close3DCodeEditor()" data-i18n="threeD.cancel">取消</button>
+      <button class="btn btn-primary" onclick="save3DCode()" data-i18n="threeD.save">保存</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
+

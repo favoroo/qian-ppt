@@ -15,6 +15,14 @@ def esc(value: Any) -> str:
     return html_lib.escape(str(value), quote=True)
 
 
+def editable_text(value: Any, path: str, tag: str = "span", class_name: str = "") -> str:
+    """渲染可双击编辑的文本节点，附带数据路径。"""
+    attrs = f' data-field-path="{path}"'
+    if class_name:
+        attrs += f' class="{class_name}"'
+    return f"<{tag}{attrs}>{esc(value)}</{tag}>"
+
+
 def component_color(data: dict[str, Any], key: str, default: str) -> str:
     """读取组件颜色字段。"""
     value = str(data.get(key, default) or default).strip()
@@ -68,12 +76,12 @@ def render_metric_card(data: dict[str, Any]) -> dict[str, str]:
     caption = esc(data.get("caption", data.get("body", "核心变化一眼读完")))
     html = (
         '<div class="se-metric-card">'
-        f'<div class="se-metric-label">{label}</div>'
+        f'{editable_text(label, "label", "div", "se-metric-label")}'
         '<div class="se-metric-main">'
-        f'<span class="se-metric-value">{value}</span>'
-        f'<span class="se-metric-unit">{unit}</span>'
+        f'{editable_text(value, "value", "span", "se-metric-value")}'
+        f'{editable_text(unit, "unit", "span", "se-metric-unit")}'
         "</div>"
-        f'<div class="se-metric-caption">{caption}</div>'
+        f'{editable_text(caption, "caption", "div", "se-metric-caption")}'
         "</div>"
     )
     css = f"""
@@ -136,14 +144,15 @@ def render_grid_list(data: dict[str, Any]) -> dict[str, str]:
     cols = int(data.get("columns", 2) or 2)
     cols = max(1, min(cols, 4))
     title = esc(data.get("title", ""))
-    title_html = f'<div class="se-grid-title">{title}</div>' if title else ""
+    title_html = editable_text(title, "title", "div", "se-grid-title") if title else ""
     cards = []
     for index, item in enumerate(items, start=1):
+        i = index - 1
         cards.append(
             '<div class="se-grid-item">'
             f'<div class="se-grid-index">{index:02d}</div>'
-            f'<div class="se-grid-label">{esc(item["label"])}</div>'
-            f'<div class="se-grid-body">{esc(item["body"])}</div>'
+            f'{editable_text(item["label"], f"items.{i}.label", "div", "se-grid-label")}'
+            f'{editable_text(item["body"], f"items.{i}.body", "div", "se-grid-body")}'
             "</div>"
         )
     html = f'<div class="se-grid-list" style="--cols:{cols};--accent:{accent};">{title_html}<div class="se-grid-items">{"".join(cards)}</div></div>'
@@ -216,11 +225,12 @@ def render_circular_flow(data: dict[str, Any]) -> dict[str, str]:
         nodes.append(
             f'<div class="se-flow-node" style="left:{x:.2f}%;top:{y:.2f}%;">'
             f'<div class="se-flow-num">{index + 1:02d}</div>'
-            f'<div class="se-flow-label">{esc(item["label"])}</div>'
-            f'<div class="se-flow-body">{esc(item["body"])}</div>'
+            f'{editable_text(item["label"], f"items.{index}.label", "div", "se-flow-label")}'
+            f'{editable_text(item["body"], f"items.{index}.body", "div", "se-flow-body")}'
             "</div>"
         )
-    html = f'<div class="se-circular-flow" style="--accent:{accent};"><div class="se-flow-ring"></div><div class="se-flow-center">{center}</div>{"".join(nodes)}</div>'
+    center_html = editable_text(center, "center", "div", "se-flow-center")
+    html = f'<div class="se-circular-flow" style="--accent:{accent};"><div class="se-flow-ring"></div>{center_html}{"".join(nodes)}</div>'
     css = """
 .se-circular-flow {
   box-sizing: border-box;
@@ -308,20 +318,20 @@ def render_compare_columns(data: dict[str, Any]) -> dict[str, str]:
         left = items[0] if len(items) > 0 else {"label": "Before", "body": "旧方式的主要限制"}
         right = items[1] if len(items) > 1 else {"label": "After", "body": "新方式的关键改进"}
     title = esc(data.get("title", ""))
-    title_html = f'<div class="se-compare-title">{title}</div>' if title else ""
+    title_html = editable_text(title, "title", "div", "se-compare-title") if title else ""
     html = f"""
 <div class="se-compare" style="--accent:{accent};">
   {title_html}
   <div class="se-compare-grid">
     <section class="se-compare-col">
-      <div class="se-compare-kicker">{esc(left.get("kicker", "A"))}</div>
-      <h3>{esc(left.get("label", left.get("title", "Before")))}</h3>
-      <p>{esc(left.get("body", left.get("caption", "")))}</p>
+      {editable_text(left.get("kicker", "A"), "left.kicker", "div", "se-compare-kicker")}
+      {editable_text(left.get("label", left.get("title", "Before")), "left.label", "h3", "")}
+      {editable_text(left.get("body", left.get("caption", "")), "left.body", "p", "")}
     </section>
     <section class="se-compare-col se-compare-col-accent">
-      <div class="se-compare-kicker">{esc(right.get("kicker", "B"))}</div>
-      <h3>{esc(right.get("label", right.get("title", "After")))}</h3>
-      <p>{esc(right.get("body", right.get("caption", "")))}</p>
+      {editable_text(right.get("kicker", "B"), "right.kicker", "div", "se-compare-kicker")}
+      {editable_text(right.get("label", right.get("title", "After")), "right.label", "h3", "")}
+      {editable_text(right.get("body", right.get("caption", "")), "right.body", "p", "")}
     </section>
   </div>
 </div>
@@ -400,15 +410,15 @@ def render_kpi_strip(data: dict[str, Any]) -> dict[str, str]:
     ]
     accent = component_color(data, "accent", "#C5E803")
     cards = []
-    for metric in metrics:
+    for index, metric in enumerate(metrics):
         cards.append(
             '<div class="se-kpi-item">'
-            f'<div class="se-kpi-label">{esc(metric["label"])}</div>'
+            f'{editable_text(metric["label"], f"metrics.{index}.label", "div", "se-kpi-label")}'
             '<div class="se-kpi-main">'
-            f'<span class="se-kpi-value">{esc(metric["value"])}</span>'
-            f'<span class="se-kpi-unit">{esc(metric["unit"])}</span>'
+            f'{editable_text(metric["value"], f"metrics.{index}.value", "span", "se-kpi-value")}'
+            f'{editable_text(metric["unit"], f"metrics.{index}.unit", "span", "se-kpi-unit")}'
             '</div>'
-            f'<div class="se-kpi-caption">{esc(metric["caption"])}</div>'
+            f'{editable_text(metric["caption"], f"metrics.{index}.caption", "div", "se-kpi-caption")}'
             '</div>'
         )
     html = f'<div class="se-kpi-strip" style="--accent:{accent};">{"".join(cards)}</div>'
@@ -469,12 +479,12 @@ def render_screenshot_frame(data: dict[str, Any]) -> dict[str, str]:
     accent = component_color(data, "accent", "#C5E803")
     title = esc(data.get("title", data.get("label", "Preview")))
     caption = esc(data.get("caption", ""))
-    caption_html = f'<div class="se-shot-caption">{caption}</div>' if caption else ""
+    caption_html = editable_text(caption, "caption", "div", "se-shot-caption") if caption else ""
     html = f"""
 <figure class="se-shot" style="--accent:{accent};">
   <div class="se-shot-bar">
     <span></span><span></span><span></span>
-    <strong>{title}</strong>
+    {editable_text(title, "title", "strong", "")}
   </div>
   <div class="se-shot-body"><img src="{src}" alt="{title}"></div>
   {caption_html}
@@ -551,8 +561,8 @@ def render_grid_card(data: dict[str, Any]) -> dict[str, str]:
     html = (
         f'<div class="se-grid-card" style="--accent:{accent};">'
         f'<div class="se-grid-index">{index}</div>'
-        f'<div class="se-grid-label">{label}</div>'
-        f'<div class="se-grid-body">{body}</div>'
+        f'{editable_text(label, "label", "div", "se-grid-label")}'
+        f'{editable_text(body, "body", "div", "se-grid-body")}'
         "</div>"
     )
     css = """

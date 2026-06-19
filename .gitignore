@@ -102,7 +102,20 @@ data/custom_components.json
 ppt/
 
 # Logs
+log/
 *.log
+
+# Documentation (local only)
+报名文档.md
+参赛报告.md
+开发手册.md
 
 # Node modules (if any frontend build)
 node_modules/
+
+# Temp / debug files
+temp.txt
+temp2.html
+append_funcs.txt
+three_grep.txt
+head_editor.html

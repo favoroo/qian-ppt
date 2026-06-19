@@ -969,6 +969,21 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
         })
     elif args.type == "html":
         elem.update({"html": args.html, "css": args.css or ""})
+    elif args.type == "3d":
+        from three_templates import build_3d_element
+        three_elem = build_3d_element(
+            geometry=args.geometry,
+            color=args.fill or "#C5E803",
+            auto_rotate=args.auto_rotate,
+            rotate_speed=args.rotate_speed,
+            metalness=args.metalness,
+            roughness=args.roughness,
+            wireframe=args.wireframe,
+            background=args.bg,
+            width=args.width,
+            height=args.height,
+        )
+        elem.update(three_elem)
     return elem
 
 
@@ -1118,7 +1133,7 @@ def collect_asset_index() -> dict[str, Any]:
                 "dune": {"--ink": "#1f1a14", "--paper": "#f0e6d2", "--paper-tint": "#e3d7bf", "--ink-tint": "#2d2620"},
             },
             "swiss": {
-                "ikb": {"--accent": "#002FA7", "--accent-on": "#ffffff"},
+                "ikb": {"--accent": "#1677FF", "--accent-on": "#ffffff"},
                 "lemon-yellow": {"--accent": "#FFD500", "--accent-on": "#0a0a0a"},
                 "lemon-green": {"--accent": "#C5E803", "--accent-on": "#0a0a0a"},
                 "safety-orange": {"--accent": "#FF6B35", "--accent-on": "#ffffff"},
@@ -1323,8 +1338,13 @@ def cmd_find(args: argparse.Namespace) -> None:
             ok = True
             if args.id and args.id not in str(elem.get("id", "")):
                 ok = False
-            if args.type and args.type != elem.get("type"):
-                ok = False
+            if args.type:
+                # 3d 是 html + meta.role='3d' 的别名
+                if args.type == "3d":
+                    if elem.get("type") != "html" or elem_role(elem) != "3d":
+                        ok = False
+                elif args.type != elem.get("type"):
+                    ok = False
             if args.role and args.role.lower() != elem_role(elem):
                 ok = False
             if args.near and not near_matches(elem, args.near):
@@ -2299,7 +2319,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("find", help="按文本、id 或类型定位元素")
     p.add_argument("--text", default="")
     p.add_argument("--id", default="")
-    p.add_argument("--type", choices=["text", "image", "rect", "circle", "triangle", "html"], default="")
+    p.add_argument("--type", choices=["text", "image", "rect", "circle", "triangle", "html", "3d"], default="")
     p.add_argument("--role", default="", help="按 meta.role 精确匹配，如 title/body/image/placeholder")
     p.add_argument("--near", choices=["top", "bottom", "left", "right", "center", "middle"], default="", help="按画布大致区域过滤")
     p.add_argument("--slide", default="")
@@ -2338,7 +2358,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("add", help="添加元素")
     p.add_argument("slide_id")
-    p.add_argument("--type", required=True, choices=["text", "image", "rect", "circle", "triangle", "html"])
+    p.add_argument("--type", required=True, choices=["text", "image", "rect", "circle", "triangle", "html", "3d"])
     add_common_element_args(p)
     p.add_argument("--text", default="")
     p.add_argument("--font-size", type=int, default=18)
@@ -2357,6 +2377,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--css", default="")
     p.add_argument("--html-file", default="", help="从文件读取 HTML，避免 shell 转义。和 --html 互斥")
     p.add_argument("--css-file", default="", help="从文件读取 CSS，避免 shell 转义。和 --css 互斥")
+    # 3D 元素参数（--type 3d 时使用）
+    p.add_argument("--geometry", default="cube", choices=["cube", "sphere", "torus", "cylinder", "cone", "icosahedron", "particles"])
+    p.add_argument("--auto-rotate", dest="auto_rotate", action="store_true", default=True)
+    p.add_argument("--no-auto-rotate", dest="auto_rotate", action="store_false")
+    p.add_argument("--rotate-speed", type=float, default=0.01)
+    p.add_argument("--metalness", type=float, default=0.4)
+    p.add_argument("--roughness", type=float, default=0.4)
+    p.add_argument("--wireframe", action="store_true", default=False)
+    p.add_argument("--bg", default="transparent", help="3D 背景色（transparent 或 #RRGGBB）")
     add_auto_place_args(p)
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_add)

@@ -43,12 +43,10 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm'}
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 60 * 60 * 24 * 7  # 静态资源 7 天缓存
 
-# 日志配置
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-)
-logger = logging.getLogger('qian-ppt')
+# 日志配置：按日期落盘 + 异步写入 + 大小轮转（详见 log_config.py）
+from log_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger('qian-ppt')
 
 if not HAS_FILE_LOCK:
     logger.warning("portalocker 未安装，文件锁降级为无锁模式，并发写入可能丢失更新。建议 pip install portalocker")
@@ -102,9 +100,20 @@ def handle_version_conflict(error):
 
 @app.after_request
 def add_security_headers(response):
-    """补充基础安全响应头。"""
+    """补充基础安全响应头并记录请求日志。"""
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    # 请求日志：按状态码分级记录
+    start_time = getattr(request, '_start_time', None)
+    duration = (time.time() - start_time) * 1000 if start_time else 0
+    status = response.status_code
+    msg = "%s %s → %s (%.0fms)" % (request.method, request.path, status, duration)
+    if status >= 500:
+        logger.error(msg)
+    elif status >= 400:
+        logger.warning(msg)
+    else:
+        logger.debug(msg)
     return response
 
 
@@ -116,6 +125,8 @@ WRITE_METHODS = {'POST', 'PUT', 'DELETE', 'PATCH'}
 @app.before_request
 def enforce_token_auth():
     """对 /api/* 写操作校验 Token；未设置 QIAN_PPT_TOKEN 时跳过（本地零配置）。"""
+    # 记录请求开始时间，供 after_request 计算耗时
+    request._start_time = time.time()
     if not AUTH_TOKEN:
         return None
     if not request.path.startswith('/api/'):
@@ -124,6 +135,8 @@ def enforce_token_auth():
         return None
     if request.headers.get('X-Auth-Token', '') == AUTH_TOKEN:
         return None
+    logger.warning("认证失败: %s %s (缺少或错误的 X-Auth-Token, 远程地址: %s)",
+                   request.method, request.path, request.remote_addr)
     return jsonify({"error": "unauthorized", "message": "缺少或错误的 X-Auth-Token"}), 401
 
 
@@ -345,6 +358,7 @@ def _atomic_write_json(target_path, data):
     except Exception:
         if os.path.exists(tmp):
             os.remove(tmp)
+        logger.error("原子写 JSON 失败: %s (临时文件: %s)", target_path, tmp, exc_info=True)
         raise
 
 
@@ -385,6 +399,7 @@ def save_slides(data, workspace_id=None, expected_version=None):
             current = _read_version_fast(data_file)
             if current != expected_version:
                 # 冲突：返回当前数据供前端合并
+                logger.warning("乐观锁冲突: 工作区 %s 期望版本 %s, 实际版本 %s", wid, expected_version, current)
                 try:
                     with open(data_file, 'r', encoding='utf-8') as f:
                         current_data = json.load(f)
@@ -687,6 +702,32 @@ def render_styled_text_filter(elem):
     return '<br>'.join(html_lines)
 
 
+# ============ 全局错误处理器 ============
+
+from werkzeug.exceptions import HTTPException
+
+
+@app.errorhandler(404)
+def not_found(e):
+    logger.warning("404 未找到: %s %s", request.method, request.path)
+    return jsonify({"error": "not found"}), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    logger.error("500 服务器内部错误: %s %s - %s", request.method, request.path, e, exc_info=True)
+    return jsonify({"error": "internal server error"}), 500
+
+
+@app.errorhandler(Exception)
+def unhandled_exception(e):
+    # HTTP 异常（abort 引发的 403/400 等）交由 Flask 默认处理，不在此拦截
+    if isinstance(e, HTTPException):
+        raise e
+    logger.error("未处理异常: %s %s - %s", request.method, request.path, e, exc_info=True)
+    return jsonify({"error": "internal server error"}), 500
+
+
 # ============ 页面路由 ============
 
 @app.route('/')
@@ -712,9 +753,13 @@ def editor():
         data = load_slides(workspace_id)
     except ValueError:
         return "Invalid workspace id", 400
+    _raw = json.dumps(data, ensure_ascii=False)
+    # 防御性转义：数据中的 </script> 会截断 HTML <script> 块
+    # 注意：不能用 '</scr'+'ipt>' 因为 Python 拼接后仍是 </script>
+    slides_data = _raw.replace('</script>', r'<\/sc' + 'ript>')
     return render_template(
         'editor.html',
-        slides_data=json.dumps(data, ensure_ascii=False),
+        slides_data=slides_data,
         workspace_id=workspace_id,
         workspaces_json=json.dumps(list_workspaces(), ensure_ascii=False)
     )
@@ -891,6 +936,7 @@ def get_image_info():
     upload_root = os.path.realpath(app.config['UPLOAD_FOLDER'])
     filepath = os.path.realpath(os.path.join(upload_root, filename))
     if not filepath.startswith(upload_root + os.sep):
+        logger.warning("图片信息路径穿越: url=%s, filepath=%s", url, filepath)
         abort(403)
     if not os.path.exists(filepath):
         return jsonify({"error": f"File not found: {filename}"}), 404
@@ -1484,4 +1530,10 @@ if __name__ == '__main__':
         logger.error("FLASK_HOST=0.0.0.0 监听外网但未设置 QIAN_PPT_TOKEN，写操作将无认证暴露。")
         logger.error("请设置环境变量 QIAN_PPT_TOKEN=<你的密码> 后再启动，或改用 FLASK_HOST=127.0.0.1。")
         raise SystemExit(1)
+    logger.info("=" * 50)
+    logger.info("Qian-PPT 启动中...")
+    logger.info("监听地址: %s:%s (debug=%s)", HOST, PORT, DEBUG)
+    logger.info("认证状态: %s", "已启用 (QIAN_PPT_TOKEN)" if AUTH_TOKEN else "未启用 (本地零配置)")
+    logger.info("日志目录: %s", os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log'))
+    logger.info("=" * 50)
     app.run(debug=DEBUG, host=HOST, port=PORT)

@@ -1,3 +1,5 @@
+> 🏆 **Trae AI 创造力大赛参赛作品**
+
 # Qian-PPT · 智能幻灯片编辑器
 
 > 🌏 **English version: [README.en.md](./README.en.md)**

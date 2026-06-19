@@ -120,7 +120,8 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
   "text": { "text": "标题", "fontSize": 36, "fill": "#0a0a0a", "fontFamily": "Inter, Noto Sans SC, sans-serif", "lineHeight": 1.4 },
   "image": { "src": "/static/uploads/photo.png", "clipType": "rect|circle|rounded-rect", "rx": 8 },
   "shape": { "type": "rect|circle|triangle", "fill": "#C5E803", "stroke": "", "strokeWidth": 0 },
-  "html": { "html": "<div>...</div>", "css": ".box{box-sizing:border-box;height:100%;overflow:hidden}" }
+  "html": { "html": "<div>...</div>", "css": ".box{box-sizing:border-box;height:100%;overflow:hidden}" },
+  "3d": { "type": "html", "meta": { "role": "3d", "component": "cube", "data": { "geometry": "cube", "color": "#C5E803", "autoRotate": true, "rotateSpeed": 0.01, "metalness": 0.4, "roughness": 0.4, "wireframe": false, "background": "transparent" } } }
 }
 ```
 
@@ -132,8 +133,45 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
 | `placeholder` / `image-slot` / `text-slot` | 可替换占位槽 |
 | `decor` / `background` | 装饰或背景，自动布局和重叠检查会弱化 |
 | `html` | HTML 组件容器 |
+| `3d` | Three.js 3D 元素（底层 type='html'） |
 
 刻意重叠时加 `meta.allowOverlap=true`。装饰元素加 `meta.role=decor`，避免误报。
+
+## 3D 元素（Three.js）
+
+3D 元素复用 HTML 通道：底层 `type='html'`，通过 `meta.role='3d'` 标识。`html` 字段内嵌 Three.js 场景代码，展示页和编辑器自动执行。
+
+**预设几何体**：`cube`（立方体）、`sphere`（球体）、`torus`（圆环）、`cylinder`（圆柱）、`cone`（圆锥）、`icosahedron`（二十面体）、`particles`（粒子系统）、`galaxy`（星系粒子）、`waves`（动态波浪）、`network`（科技网络）。
+
+**添加 3D 元素**：
+
+```bash
+# 添加默认旋转立方体
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry cube --auto-place
+
+# 添加红色球体
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry sphere --fill "#ff0000" --auto-place
+
+# 添加快速旋转的圆环
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry torus --rotate-speed 0.03 --auto-place
+
+# 添加线框模式二十面体
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry icosahedron --wireframe --auto-place
+```
+
+**3D 参数**：`--geometry`（几何体）、`--fill`（颜色）、`--auto-rotate`/`--no-auto-rotate`（自动旋转）、`--rotate-speed`（旋转速度 0-0.1）、`--metalness`（金属度 0-1）、`--roughness`（粗糙度 0-1）、`--wireframe`（线框模式）、`--bg`（背景色，transparent 或 #RRGGBB）。
+
+**自定义 3D 场景**：用 `--type html` + `--html-file` 传入自定义 Three.js 代码，并设置 `--meta role=3d`：
+
+```bash
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type html --html-file my_scene.html --meta role=3d --auto-place
+```
+
+**修改 3D 元素**：用 `update --property html=<新代码>` 替换 3D 场景代码，或修改 `meta.data` 中的参数后重新生成代码。
+
+**查找 3D 元素**：`find --type 3d` 会自动匹配 `type='html'` 且 `meta.role='3d'` 的元素。
+
+**注意**：3D 元素在展示页为自动播放（自动旋转），不支持鼠标交互。编辑器内可交互。默认尺寸 240×240。
 
 ## 占位与上传规则
 

@@ -15,6 +15,14 @@ def esc(value: Any) -> str:
     return html_lib.escape(str(value), quote=True)
 
 
+def editable_text(value: Any, path: str, tag: str = "span", class_name: str = "") -> str:
+    """渲染可双击编辑的文本节点，附带数据路径。"""
+    attrs = f' data-field-path="{path}"'
+    if class_name:
+        attrs += f' class="{class_name}"'
+    return f"<{tag}{attrs}>{esc(value)}</{tag}>"
+
+
 def component_color(data: dict[str, Any], key: str, default: str) -> str:
     """读取组件颜色字段。"""
     value = str(data.get(key, default) or default).strip()
@@ -128,7 +136,7 @@ def render_guizang_typography(data: dict[str, Any]) -> dict[str, str]:
         style["color"] = data["color"]
     
     style_str = "; ".join(f"{k}: {v}" for k, v in style.items())
-    html = f'<div class="gz-typography gz-role-{role}" style="{style_str}">{text}</div>'
+    html = f'<div class="gz-typography gz-role-{role}" style="{style_str}">{editable_text(text, "text", "span", "")}</div>'
     
     css = """
 .gz-typography {
@@ -158,11 +166,11 @@ def render_guizang_callout(data: dict[str, Any]) -> dict[str, str]:
     """
     quote = esc(data.get("quote", ""))
     cite = data.get("cite", "")
-    cite_html = f'<span class="gz-cite">{esc(cite)}</span>' if cite else ""
+    cite_html = editable_text(cite, "cite", "span", "gz-cite") if cite else ""
     
     html = (
         '<div class="gz-callout">'
-        f'<div class="gz-q-big">{quote}</div>'
+        f'{editable_text(quote, "quote", "div", "gz-q-big")}'
         f"{cite_html}"
         "</div>"
     )
@@ -242,12 +250,12 @@ def render_guizang_stat_grid(data: dict[str, Any]) -> dict[str, str]:
     accent = component_color(data, "accent", "#C5E803")
     
     stat_items = []
-    for item in items:
+    for index, item in enumerate(items):
         stat_items.append(
             '<div class="gz-stat">'
-            f'<span class="gz-stat-label">{esc(item["label"])}</span>'
-            f'<span class="gz-stat-value">{esc(item["value"])}</span>'
-            f'<span class="gz-stat-caption">{esc(item.get("caption", ""))}</span>'
+            f'{editable_text(item["label"], f"items.{index}.label", "span", "gz-stat-label")}'
+            f'{editable_text(item["value"], f"items.{index}.value", "span", "gz-stat-value")}'
+            f'{editable_text(item.get("caption", ""), f"items.{index}.caption", "span", "gz-stat-caption")}'
             "</div>"
         )
     
@@ -341,7 +349,7 @@ def render_guizang_pillar(data: dict[str, Any]) -> dict[str, str]:
     accent = component_color(data, "accent", "#C5E803")
     
     pillar_items = []
-    for item in items:
+    for index, item in enumerate(items):
         icon_is_number = item["icon"].isdigit()
         icon_html = (
             f'<div class="gz-pillar-num">{esc(item["icon"])}</div>'
@@ -351,8 +359,8 @@ def render_guizang_pillar(data: dict[str, Any]) -> dict[str, str]:
         pillar_items.append(
             '<div class="gz-pillar">'
             f'{icon_html}'
-            f'<div class="gz-pillar-title">{esc(item["label"])}</div>'
-            f'<div class="gz-pillar-desc">{esc(item["description"])}</div>'
+            f'{editable_text(item["label"], f"items.{index}.label", "div", "gz-pillar-title")}'
+            f'{editable_text(item["description"], f"items.{index}.description", "div", "gz-pillar-desc")}'
             "</div>"
         )
     
@@ -448,12 +456,12 @@ def render_guizang_rowline(data: dict[str, Any]) -> dict[str, str]:
     cols = max(2, min(cols, 3))
     
     row_items = []
-    for item in items:
-        tag_html = f'<span class="gz-rowline-tag">{esc(item["tag"])}</span>' if item["tag"] else ""
+    for index, item in enumerate(items):
+        tag_html = editable_text(item["tag"], f"items.{index}.tag", "span", "gz-rowline-tag") if item["tag"] else ""
         row_items.append(
             '<div class="gz-rowline">'
-            f'<span class="gz-rowline-key">{esc(item["keyword"])}</span>'
-            f'<span class="gz-rowline-val">{esc(item["value"])}</span>'
+            f'{editable_text(item["keyword"], f"items.{index}.keyword", "span", "gz-rowline-key")}'
+            f'{editable_text(item["value"], f"items.{index}.value", "span", "gz-rowline-val")}'
             f"{tag_html}"
             "</div>"
         )
@@ -545,11 +553,11 @@ def render_guizang_figure(data: dict[str, Any]) -> dict[str, str]:
     
     caption_parts = []
     if platform:
-        caption_parts.append(f'<span class="gz-figure-pf">{esc(platform)}</span>')
+        caption_parts.append(editable_text(platform, "platform", "span", "gz-figure-pf"))
     if value:
-        caption_parts.append(f'<span class="gz-figure-nb">{esc(value)}</span>')
+        caption_parts.append(editable_text(value, "value", "span", "gz-figure-nb"))
     if caption:
-        caption_parts.append(f'<span class="gz-figure-text">{esc(caption)}</span>')
+        caption_parts.append(editable_text(caption, "caption", "span", "gz-figure-text"))
     
     caption_html = ""
     if caption_parts:
@@ -639,15 +647,13 @@ def render_guizang_platform(data: dict[str, Any]) -> dict[str, str]:
     
     caption_html = ""
     if caption:
-        caption_html = (
-            f'<div class="gz-plat-caption">{esc(caption)}</div>'
-        )
+        caption_html = editable_text(caption, "caption", "div", "gz-plat-caption")
     
     html = (
         '<div class="gz-platform-card" style="--accent:{accent};">'
-        f'<div class="gz-plat-sub">{sub}</div>'
-        f'<div class="gz-plat-name">{name}</div>'
-        f'<div class="gz-plat-value">{value}</div>'
+        f'{editable_text(sub, "sub", "div", "gz-plat-sub")}'
+        f'{editable_text(name, "name", "div", "gz-plat-name")}'
+        f'{editable_text(value, "value", "div", "gz-plat-value")}'
         f"{caption_html}"
         "</div>"
     ).format(accent=accent)
@@ -726,7 +732,7 @@ def render_guizang_ghost(data: dict[str, Any]) -> dict[str, str]:
     html = (
         f'<div class="gz-ghost" '
         f'style="{pos_style}opacity:{opacity};font-style:{font_style};">'
-        f"{text}"
+        f'{editable_text(text, "text", "span", "")}'
         "</div>"
     )
     
@@ -768,8 +774,8 @@ def render_guizang_pillar_card(data: dict[str, Any]) -> dict[str, str]:
     html = (
         f'<div class="gz-pillar-card" style="--accent:{accent};">'
         f'{icon_html}'
-        f'<div class="gz-pillar-title">{label}</div>'
-        f'<div class="gz-pillar-desc">{description}</div>'
+        f'{editable_text(label, "label", "div", "gz-pillar-title")}'
+        f'{editable_text(description, "description", "div", "gz-pillar-desc")}'
         "</div>"
     )
     css = """

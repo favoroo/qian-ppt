@@ -1,3 +1,5 @@
+> 🏆 **Trae AI Creativity Competition Entry**
+
 # Qian-PPT · Intelligent Slide Editor
 
 > 🌏 **中文版本: [README.md](./README.md)**
