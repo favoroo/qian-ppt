@@ -982,6 +982,37 @@ select.form-control {
   border-color: var(--accent);
 }
 
+/* 对齐按钮组 */
+.align-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.align-btn {
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.align-btn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.align-btn .material-symbols-rounded {
+  font-size: 18px;
+}
+
 /* 切换按钮组 */
 .toggle-group {
   display: flex;
@@ -6417,6 +6448,23 @@ function setupKeyboardShortcuts() {
         updatePropsPanel();
       }
     }
+
+    // Ctrl/Cmd + ] / [ -> 调整元素层级（Shift 变体为置顶/置底）
+    if (ctrlOrCmd && canvas && (e.code === 'BracketRight' || e.code === 'BracketLeft')) {
+      if (activeObj) {
+        e.preventDefault();
+        if (e.shiftKey && e.code === 'BracketRight') {
+          layerAction('bringToFront');
+        } else if (e.shiftKey && e.code === 'BracketLeft') {
+          layerAction('sendToBack');
+        } else if (e.code === 'BracketRight') {
+          layerAction('bringForward');
+        } else {
+          layerAction('sendBackwards');
+        }
+      }
+      return;
+    }
   });
 }
 
@@ -6978,6 +7026,26 @@ function renderPropsForm(obj) {
           <input type="range" id="propOpacityRange" min="0" max="1" step="0.05" value="${opacity}" oninput="document.getElementById('propOpacity').textContent=Math.round(parseFloat(this.value)*100)+'%'; applyProp('opacity', parseFloat(this.value))">
           <span class="range-value" id="propOpacity">${Math.round(opacity * 100)}%</span>
         </div>
+      </div>
+      <div class="align-buttons">
+        <button class="align-btn" onclick="alignElementToCanvas('left')" title="${t('props.align.left')}">
+          <span class="material-symbols-rounded">align_horizontal_left</span>
+        </button>
+        <button class="align-btn" onclick="alignElementToCanvas('centerH')" title="${t('props.align.centerH')}">
+          <span class="material-symbols-rounded">align_horizontal_center</span>
+        </button>
+        <button class="align-btn" onclick="alignElementToCanvas('right')" title="${t('props.align.right')}">
+          <span class="material-symbols-rounded">align_horizontal_right</span>
+        </button>
+        <button class="align-btn" onclick="alignElementToCanvas('top')" title="${t('props.align.top')}">
+          <span class="material-symbols-rounded">align_vertical_top</span>
+        </button>
+        <button class="align-btn" onclick="alignElementToCanvas('centerV')" title="${t('props.align.centerV')}">
+          <span class="material-symbols-rounded">align_vertical_center</span>
+        </button>
+        <button class="align-btn" onclick="alignElementToCanvas('bottom')" title="${t('props.align.bottom')}">
+          <span class="material-symbols-rounded">align_vertical_bottom</span>
+        </button>
       </div>
     </div>
 
@@ -10273,8 +10341,10 @@ const ctxIcons = {
   lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
   unlock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>',
   delete: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
+  bringToFront: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>',
   bringForward: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>',
   sendBackwards: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+  sendToBack: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/></svg>',
   center: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="9"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/></svg>',
   group: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>',
   ungroup: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><line x1="14" y1="14" x2="22" y2="22"/><line x1="22" y1="14" x2="14" y2="22"/></svg>',
@@ -10329,8 +10399,10 @@ function getElementMenuItems(locked, isGroup, isMultiSelect) {
     items.push(buildCtxItem('ungroupElements', t('context.ungroup'), ctxIcons.ungroup, 'Ctrl+Shift+G', ''));
   }
   items.push(
-    buildCtxItem('bringForward', t('context.bringForward'), ctxIcons.bringForward, '', ''),
-    buildCtxItem('sendBackwards', t('context.sendBackwards'), ctxIcons.sendBackwards, '', ''),
+    buildCtxItem('bringToFront', t('props.layer.bringToFront'), ctxIcons.bringToFront, 'Ctrl+Shift+]', ''),
+    buildCtxItem('bringForward', t('context.bringForward'), ctxIcons.bringForward, 'Ctrl+]', ''),
+    buildCtxItem('sendBackwards', t('context.sendBackwards'), ctxIcons.sendBackwards, 'Ctrl+[', ''),
+    buildCtxItem('sendToBack', t('props.layer.sendToBack'), ctxIcons.sendToBack, 'Ctrl+Shift+[', ''),
     buildCtxItem('centerOnCanvas', t('context.center'), ctxIcons.center, '', ''),
     buildCtxSeparator(),
     buildCtxItem('addToComponentLibrary', t('context.addToComponents'), ctxIcons.addToComponents, '', ''),
@@ -10398,8 +10470,10 @@ function executeContextAction(action) {
     case 'copy': copySelectedElement(); break;
     case 'toggleLock': toggleSelectedLock(); break;
     case 'delete': deleteSelectedElement(); break;
+    case 'bringToFront': layerAction('bringToFront'); break;
     case 'bringForward': layerAction('bringForward'); break;
     case 'sendBackwards': layerAction('sendBackwards'); break;
+    case 'sendToBack': layerAction('sendToBack'); break;
     case 'centerOnCanvas': centerElementOnCanvas(); break;
     case 'groupElements': groupSelectedElements(); break;
     case 'ungroupElements': ungroupSelectedElement(); break;

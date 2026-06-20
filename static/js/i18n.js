@@ -649,6 +649,13 @@
       'props.label.rotation': 'Rotation',
       'props.label.opacity': 'Opacity',
 
+      'props.align.left': 'Align Left',
+      'props.align.centerH': 'Center Horizontally',
+      'props.align.right': 'Align Right',
+      'props.align.top': 'Align Top',
+      'props.align.centerV': 'Center Vertically',
+      'props.align.bottom': 'Align Bottom',
+
       'props.section.layer': 'Layer',
       'props.layer.duplicate': 'Duplicate',
       'props.layer.lock': 'Lock',
