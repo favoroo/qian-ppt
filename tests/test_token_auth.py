@@ -1,4 +1,5 @@
 """Token 认证测试：QIAN_PPT_TOKEN 设置后写操作需带 X-Auth-Token。"""
+import shutil
 import uuid
 import pytest
 import app as app_module
@@ -13,6 +14,18 @@ def token_enabled():
     app_module.AUTH_TOKEN = original
 
 
+@pytest.fixture
+def clean_ws_token():
+    """记录本测试中创建的工作区 ID，测试结束后清理目录和元数据。"""
+    created = []
+    yield created
+    for wid in created:
+        shutil.rmtree(app_module.workspace_dir(wid), ignore_errors=True)
+        meta = app_module.read_workspaces_meta()
+        meta.get('workspaces', {}).pop(wid, None)
+        app_module.write_workspaces_meta(meta)
+
+
 def test_write_blocked_without_token(client, token_enabled):
     """无 Token 时写操作返回 401。"""
     resp = client.post('/api/workspaces', json={'id': 'ws-no-token', 'name': 'ws-no-token'})
@@ -21,9 +34,10 @@ def test_write_blocked_without_token(client, token_enabled):
     assert data['error'] == 'unauthorized'
 
 
-def test_write_allowed_with_correct_token(client, token_enabled):
+def test_write_allowed_with_correct_token(client, token_enabled, clean_ws_token):
     """带正确 Token 时写操作通过认证。"""
     ws_id = f'ws-token-{uuid.uuid4().hex[:8]}'
+    clean_ws_token.append(ws_id)
     resp = client.post(
         '/api/workspaces',
         json={'id': ws_id, 'name': ws_id},
