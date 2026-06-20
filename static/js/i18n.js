@@ -349,6 +349,7 @@
       'props.label.strokeColor': '描边色',
       'props.label.strokeWidth': '描边宽度',
       'props.label.strokeNone': '无',
+      'props.label.transparent': '透明',
       'props.label.shapeCornerRadius': '圆角',
 
       'props.weight.100': '100 (极细)',
@@ -775,6 +776,7 @@
       'props.label.strokeColor': 'Stroke Color',
       'props.label.strokeWidth': 'Stroke Width',
       'props.label.strokeNone': 'None',
+      'props.label.transparent': 'Transparent',
       'props.label.shapeCornerRadius': 'Corner Radius',
 
       'props.weight.100': '100 (Thin)',

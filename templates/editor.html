@@ -1025,6 +1025,23 @@ select.form-control {
   font-size: 12px;
 }
 
+.color-options-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.color-options-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
 /* 编组编辑模式指示器 */
 .group-edit-indicator {
   position: absolute;
@@ -2652,6 +2669,7 @@ let selectedImportMode = null;
 const slideThumbnails = {};
 let thumbUpdateTimer = null;
 let isSwitchingWorkspace = false;
+let textChangeHistoryTimeout = null;
 
 function apiUrl(path) {
   const url = new URL(path, window.location.origin);
@@ -2950,6 +2968,27 @@ function updateThemeColorInSlidesData(newHex) {
   });
 }
 
+function toggleFillTransparent(checked) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) return;
+
+  if (checked) {
+    obj.fillThemeLink = false;
+    obj.set('fill', 'transparent');
+  } else {
+    const accentColor = getCurrentAccentColor();
+    obj.fillThemeLink = true;
+    obj.set('fill', accentColor);
+  }
+
+  obj.setCoords();
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+  renderPropsForm(obj);
+}
+
 function toggleFillThemeLink(checked) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
@@ -2959,21 +2998,43 @@ function toggleFillThemeLink(checked) {
   if (checked) {
     const accentColor = getCurrentAccentColor();
     obj.set('fill', accentColor);
-    
+
     // Update inputs
     const pFill = document.getElementById('propFill');
     const pFillHex = document.getElementById('propFillHex');
     const pRectFill = document.getElementById('propRectFill');
-    
+
     if (pFill) pFill.value = hexToColorInput(accentColor);
     if (pFillHex) pFillHex.value = accentColor;
     if (pRectFill) pRectFill.value = hexToColorInput(accentColor);
   }
-  
+
   obj.setCoords();
   canvas.requestRenderAll();
   pushHistory();
   scheduleAutoSave();
+  renderPropsForm(obj);
+}
+
+function toggleStrokeTransparent(checked) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) return;
+
+  if (checked) {
+    obj.strokeThemeLink = false;
+    obj.set('stroke', 'transparent');
+  } else {
+    const accentColor = getCurrentAccentColor();
+    obj.strokeThemeLink = true;
+    obj.set('stroke', accentColor);
+  }
+
+  obj.setCoords();
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+  renderPropsForm(obj);
 }
 
 function toggleStrokeThemeLink(checked) {
@@ -2985,19 +3046,20 @@ function toggleStrokeThemeLink(checked) {
   if (checked) {
     const accentColor = getCurrentAccentColor();
     obj.set('stroke', accentColor);
-    
+
     // Update inputs
     const pStroke = document.getElementById('propStroke');
     const pStrokeHex = document.getElementById('propStrokeHex');
-    
+
     if (pStroke) pStroke.value = hexToColorInput(accentColor);
     if (pStrokeHex) pStrokeHex.value = accentColor;
   }
-  
+
   obj.setCoords();
   canvas.requestRenderAll();
   pushHistory();
   scheduleAutoSave();
+  renderPropsForm(obj);
 }
 
 function toggleComponentThemeLink(path, checked) {
@@ -3235,7 +3297,11 @@ function startComponentTextEdit(el, path, obj) {
     const newText = el.textContent;
     isComponentTextEditing = false;
     if (newText !== originalText) {
-      updateComponentDataField(obj, path, newText);
+      updateComponentDataField(obj, path, newText).then(() => {
+        updatePropsPanel();
+      });
+    } else {
+      updatePropsPanel();
     }
   }
 
@@ -4210,12 +4276,16 @@ function bindCanvasEvents() {
   canvas.on('mouse:down', handleCanvasMouseDown);
   canvas.on('mouse:up', handleCanvasMouseUp);
 
-  // 文本编辑完成
+  // 文本编辑完成（合并连续输入为一个撤销快照）
   canvas.on('text:changed', () => {
     if (isRestoringHistory) return;
-    pushHistory();
-    scheduleAutoSave();
-    updatePropsPanel();
+    if (textChangeHistoryTimeout) clearTimeout(textChangeHistoryTimeout);
+    textChangeHistoryTimeout = setTimeout(() => {
+      textChangeHistoryTimeout = null;
+      pushHistory();
+      scheduleAutoSave();
+      updatePropsPanel();
+    }, 750);
   });
 
   // HTML 预览同步
@@ -4979,7 +5049,8 @@ function serializeSingleElement(obj, i) {
       ...base,
       type: 'html',
       html: obj.html || '',
-      css: obj.css || ''
+      css: obj.css || '',
+      meta: obj.meta || { role: 'html' }
     };
   }
 
@@ -6656,7 +6727,28 @@ function pushHistory() {
   updateUndoRedoButtons();
 }
 
+function flushPendingTextHistory() {
+  if (textChangeHistoryTimeout) {
+    clearTimeout(textChangeHistoryTimeout);
+    textChangeHistoryTimeout = null;
+    pushHistory();
+    scheduleAutoSave();
+    updatePropsPanel();
+  }
+}
+
+async function flushPendingComponentSync() {
+  if (componentSyncTimeout) {
+    clearTimeout(componentSyncTimeout);
+    componentSyncTimeout = null;
+    await syncComponentFromUI();
+  }
+}
+
 async function undoAction() {
+  flushPendingTextHistory();
+  await flushPendingComponentSync();
+
   if (undoStack.length <= 1) {
     if (deletedSlidesStack.length > 0) {
       undoSlideDelete();
@@ -6680,6 +6772,9 @@ async function undoAction() {
 }
 
 async function redoAction() {
+  flushPendingTextHistory();
+  await flushPendingComponentSync();
+
   if (redoStack.length === 0 || !canvas) return;
 
   isUndoingOrRedoing = true;
@@ -7572,12 +7667,18 @@ function renderShapeProps(obj, showRadius) {
           <label>${t('props.label.fillColor')}</label>
           <div class="color-input-wrap">
             <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" oninput="applyProp('fill', this.value, false); document.getElementById('propRectFillHex').value=this.value" onchange="applyProp('fill', this.value)">
-            <input type="text" class="form-control color-hex" id="propRectFillHex" value="${obj.fill || '#C5E803'}" onchange="applyProp('fill', this.value); document.getElementById('propRectFill').value=hexToColorInput(this.value);">
+            <input type="text" class="form-control color-hex" id="propRectFillHex" value="${obj.fill === 'transparent' ? 'transparent' : (obj.fill || '#C5E803')}" onchange="applyProp('fill', this.value); document.getElementById('propRectFill').value=hexToColorInput(this.value);">
           </div>
-          <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
-            <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
-            ${t('props.label.useThemeColor')}
-          </label>
+          <div class="color-options-row">
+            <label>
+              <input type="checkbox" id="propFillTransparent" ${obj.fill === 'transparent' ? 'checked' : ''} onchange="toggleFillTransparent(this.checked)">
+              ${t('props.label.transparent')}
+            </label>
+            <label>
+              <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink && obj.fill !== 'transparent' ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
+              ${t('props.label.useThemeColor')}
+            </label>
+          </div>
         </div>
       </div>
       <div class="form-row">
@@ -7585,12 +7686,18 @@ function renderShapeProps(obj, showRadius) {
           <label>${t('props.label.strokeColor')}</label>
           <div class="color-input-wrap">
             <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" oninput="applyProp('stroke', this.value, false); document.getElementById('propStrokeHex').value=this.value" onchange="applyProp('stroke', this.value)">
-            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value); document.getElementById('propStroke').value=hexToColorInput(this.value);">
+            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${!obj.stroke || obj.stroke === 'transparent' ? 'transparent' : obj.stroke}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value); document.getElementById('propStroke').value=hexToColorInput(this.value);">
           </div>
-          <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
-            <input type="checkbox" id="propStrokeThemeLink" ${obj.strokeThemeLink ? 'checked' : ''} onchange="toggleStrokeThemeLink(this.checked)">
-            ${t('props.label.useThemeColor')}
-          </label>
+          <div class="color-options-row">
+            <label>
+              <input type="checkbox" id="propStrokeTransparent" ${!obj.stroke || obj.stroke === 'transparent' ? 'checked' : ''} onchange="toggleStrokeTransparent(this.checked)">
+              ${t('props.label.transparent')}
+            </label>
+            <label>
+              <input type="checkbox" id="propStrokeThemeLink" ${obj.strokeThemeLink && obj.stroke && obj.stroke !== 'transparent' ? 'checked' : ''} onchange="toggleStrokeThemeLink(this.checked)">
+              ${t('props.label.useThemeColor')}
+            </label>
+          </div>
         </div>
         <div class="form-group">
           <label>${t('props.label.strokeWidth')}</label>
@@ -7631,14 +7738,20 @@ function applyProp(propName, value, commit = true) {
     obj.set(propName, Math.max(0, parseFloat(value) || 0));
   } else if (propName === 'rx' || propName === 'ry' || propName === 'fill' || propName === 'stroke') {
     if (propName === 'fill') {
+      if (!value || value === 'transparent') return;
       obj.fillThemeLink = false;
       const chk = document.getElementById('propFillThemeLink');
       if (chk) chk.checked = false;
+      const transparentChk = document.getElementById('propFillTransparent');
+      if (transparentChk) transparentChk.checked = false;
     }
     if (propName === 'stroke') {
+      if (!value || value === 'transparent') return;
       obj.strokeThemeLink = false;
       const chk = document.getElementById('propStrokeThemeLink');
       if (chk) chk.checked = false;
+      const transparentChk = document.getElementById('propStrokeTransparent');
+      if (transparentChk) transparentChk.checked = false;
     }
     obj.set(propName, value);
   }
@@ -8416,7 +8529,7 @@ function escapeHtml(str) {
 }
 
 function rgbToHex(color) {
-  if (!color) return '#000000';
+  if (!color || color === 'transparent') return '#C5E803';
   if (color.startsWith('#')) return color;
   // 处理 rgb() 格式
   const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -8430,7 +8543,7 @@ function rgbToHex(color) {
 }
 
 function hexToColorInput(hex) {
-  if (!hex || !hex.startsWith('#')) return hex;
+  if (!hex || hex === 'transparent' || !hex.startsWith('#')) return '#C5E803';
   return hex;
 }
 
@@ -10297,43 +10410,43 @@ function debouncedSyncComponent() {
 
 function syncComponentFromUI() {
   const activeObj = canvas.getActiveObject();
-  if (!activeObj || activeObj.elementType !== 'html' || !activeObj.meta || !activeObj.meta.component) return;
-  
+  if (!activeObj || activeObj.elementType !== 'html' || !activeObj.meta || !activeObj.meta.component) return Promise.resolve();
+
   const newData = JSON.parse(JSON.stringify(activeObj.meta.data || {}));
-  
+
   const inputs = document.querySelectorAll('.form-component-input');
   inputs.forEach(input => {
     const path = input.dataset.path;
     if (!path) return;
-    
+
     const parts = path.split('.');
     let current = newData;
-    
+
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       // 如果下一级是数组索引，需要转为数字
       const nextPart = parts[i+1];
       const isNextIdx = /^\d+$/.test(nextPart);
-      
+
       if (current[part] === undefined) {
         current[part] = isNextIdx ? [] : {};
       }
       current = current[part];
     }
-    
+
     const lastPart = parts[parts.length - 1];
     let value = input.value;
-    
+
     if (lastPart === 'columns') {
       value = parseInt(value) || 2;
     } else if (lastPart === 'opacity') {
       value = parseFloat(value) || 1.0;
     }
-    
+
     current[lastPart] = value;
   });
-  
-  updateComponentOnCanvas(activeObj, newData);
+
+  return updateComponentOnCanvas(activeObj, newData);
 }
 
 async function updateComponentOnCanvas(activeObj, newData) {
@@ -11510,7 +11623,7 @@ if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canv
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
-camera.position.set(0,0,9);
+camera.position.set(0,0,8.5);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
