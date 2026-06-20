@@ -1499,11 +1499,20 @@ def export_html():
     workspace_id = normalize_workspace_id()
     data = load_slides(workspace_id)
     clean_data = sanitize_text_in_data(data)
+    # 读取 Three.js 源码用于内联，保证导出文件在 file:// 协议下自包含可用
+    three_js_source = None
+    three_js_path = os.path.join(os.path.dirname(__file__), 'static', 'js', 'three.min.js')
+    try:
+        with open(three_js_path, 'r', encoding='utf-8') as f:
+            three_js_source = f.read()
+    except Exception:
+        three_js_source = None
     slides_html = render_template(
         'presentation.html',
         slides=clean_data.get('slides', []),
         settings=clean_data.get('settings', {}),
         export_data_json=make_export_data_json(clean_data),
+        three_js_source=three_js_source,
         workspace_id=workspace_id
     )
     export_dir = workspace_export_folder(workspace_id)

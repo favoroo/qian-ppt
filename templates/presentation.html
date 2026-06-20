@@ -10,7 +10,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&family=Noto+Serif+SC:wght@200;300;400;500;700;900&family=Playfair+Display:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="/static/icons/material-icons/icons.css" rel="stylesheet">
 <script src="/static/js/fabric.min.js"></script>
+{% if three_js_source %}
+<script>{{ three_js_source | safe }}</script>
+{% else %}
 <script src="/static/js/three.min.js"></script>
+{% endif %}
 <script src="/static/js/i18n.js?v=2"></script>
 <style>
   :root{
