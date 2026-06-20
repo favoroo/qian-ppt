@@ -806,10 +806,12 @@ def _regenerate_three_html(slides):
                     color=data.get('color', '#C5E803'),
                     auto_rotate=data.get('autoRotate', True),
                     rotate_speed=data.get('rotateSpeed', 0.01),
-                    metalness=data.get('metalness', 0.4),
-                    roughness=data.get('roughness', 0.4),
+                    metalness=data.get('metalness', 0.1),
+                    roughness=data.get('roughness', 0.85),
                     wireframe=data.get('wireframe', False),
                     background=data.get('background', 'transparent'),
+                    floating=data.get('floating', True),
+                    neon_light=data.get('neonLight', False),
                     uid=meta.get('uid'),
                 )['html']
                 elem['html'] = html

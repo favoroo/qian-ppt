@@ -996,6 +996,8 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
             width=args.width,
             height=args.height,
             custom_code=custom_code,
+            floating=args.floating,
+            neon_light=args.neon_light,
         )
         elem.update(three_elem)
     return elem
@@ -2392,12 +2394,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--html-file", default="", help="从文件读取 HTML，避免 shell 转义。和 --html 互斥")
     p.add_argument("--css-file", default="", help="从文件读取 CSS，避免 shell 转义。和 --css 互斥")
     # 3D 元素参数（--type 3d 时使用）
-    p.add_argument("--geometry", default="cube", choices=["cube", "sphere", "torus", "cylinder", "cone", "icosahedron", "particles", "custom"])
+    p.add_argument("--geometry", default="cube", choices=["cube", "sphere", "torus", "cylinder", "cone", "icosahedron", "particles", "galaxy", "waves", "network", "torusKnot", "dna", "globe", "custom"])
     p.add_argument("--auto-rotate", dest="auto_rotate", action="store_true", default=True)
     p.add_argument("--no-auto-rotate", dest="auto_rotate", action="store_false")
     p.add_argument("--rotate-speed", type=float, default=0.01)
     p.add_argument("--metalness", type=float, default=0.1)
     p.add_argument("--roughness", type=float, default=0.85)
+    p.add_argument("--floating", dest="floating", action="store_true", default=True)
+    p.add_argument("--no-floating", dest="floating", action="store_false")
+    p.add_argument("--neon-light", dest="neon_light", action="store_true", default=False)
+    p.add_argument("--no-neon-light", dest="neon_light", action="store_false")
     p.add_argument("--wireframe", action="store_true", default=False)
     p.add_argument("--bg", default="transparent", help="3D 背景色（transparent 或 #RRGGBB）")
     p.add_argument("--custom-code", default="", help="自定义 Three.js 场景完整 HTML 代码（仅 --geometry custom 时使用）")

@@ -63,6 +63,21 @@ PRESETS = {
         "icon": "hub",
         "geometry": "network",
     },
+    "torusKnot": {
+        "label": "圆环结",
+        "icon": "all_inclusive",
+        "geometry": "torusKnot",
+    },
+    "dna": {
+        "label": "双螺旋",
+        "icon": "dna",
+        "geometry": "dna",
+    },
+    "globe": {
+        "label": "科技地球",
+        "icon": "language",
+        "geometry": "globe",
+    },
 
     "custom": {
         "label": "自定义代码",
@@ -81,6 +96,8 @@ DEFAULT_DATA = {
     "roughness": 0.85,
     "wireframe": False,
     "background": "transparent",
+    "floating": True,
+    "neonLight": False,
 }
 
 # 默认尺寸
@@ -109,6 +126,8 @@ def _geometry_code(geometry: str) -> str:
         return "var geometry = new THREE.ConeGeometry(1, 1.8, 48);"
     if geometry == "icosahedron":
         return "var geometry = new THREE.IcosahedronGeometry(1.2, 0);"
+    if geometry == "torusKnot":
+        return "var geometry = new THREE.TorusKnotGeometry(0.7, 0.22, 120, 16);"
     return "var geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);"
 
 
@@ -133,20 +152,36 @@ def generate_three_js_code(data: dict[str, Any], uid: str | None = None) -> str:
     roughness = float(data.get("roughness", 0.85))
     wireframe = "true" if data.get("wireframe", False) else "false"
     background = data.get("background", "transparent")
+    floating = "true" if data.get("floating", True) else "false"
+    neon_light = "true" if data.get("neonLight", False) else "false"
 
-    # 粒子系统使用特殊渲染
+    # 粒子系统/特殊几何体使用特殊渲染
     if geometry == "particles":
-        return _generate_particles_code(uid, color, auto_rotate, rotate_speed, background)
+        return _generate_particles_code(uid, color, auto_rotate, rotate_speed, background, floating)
     if geometry == "galaxy":
-        return _generate_galaxy_code(uid, color, auto_rotate, rotate_speed, background)
+        return _generate_galaxy_code(uid, color, auto_rotate, rotate_speed, background, floating)
     if geometry == "waves":
-        return _generate_waves_code(uid, color, auto_rotate, rotate_speed, background)
+        return _generate_waves_code(uid, color, auto_rotate, rotate_speed, background, floating)
     if geometry == "network":
-        return _generate_network_code(uid, color, auto_rotate, rotate_speed, background)
+        return _generate_network_code(uid, color, auto_rotate, rotate_speed, background, floating)
+    if geometry == "dna":
+        return _generate_dna_code(uid, color, auto_rotate, rotate_speed, background, floating, neon_light)
+    if geometry == "globe":
+        return _generate_globe_code(uid, color, auto_rotate, rotate_speed, background, floating, neon_light)
 
     geom_code = _geometry_code(geometry)
     bg_alpha = "true" if background == "transparent" else "false"
     bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
+
+    if data.get("neonLight", False):
+        light_setup = f'''scene.add(new THREE.AmbientLight(0xffffff,0.3));
+var d1=new THREE.DirectionalLight(0xffffff,0.5);d1.position.set(2,3,4);scene.add(d1);
+var p1=new THREE.PointLight(0x00f3ff,1.5,12);p1.position.set(-3,3,2);scene.add(p1);
+var p2=new THREE.PointLight(0xff00a0,1.5,12);p2.position.set(3,-3,2);scene.add(p2);'''
+    else:
+        light_setup = f'''scene.add(new THREE.AmbientLight(0xffffff,0.5));
+var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);'''
 
     # 颜色转 0xRRGGBB
     color_hex = color.lstrip("#")
@@ -167,9 +202,7 @@ var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_al
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
 {bg_clear}
-scene.add(new THREE.AmbientLight(0xffffff,0.5));
-var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
-var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);
+{light_setup}
 {geom_code}
 var material=new THREE.MeshStandardMaterial({{color:{color_js},metalness:{metalness},roughness:{roughness},wireframe:{wireframe}}});
 var mesh=new THREE.Mesh(geometry,material);
@@ -182,6 +215,7 @@ var wireframeMesh=new THREE.Mesh(wireframeGeom,wireframeMat);
 mesh.add(wireframeMesh);
 }}
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){{
@@ -191,7 +225,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){{mesh.rotation.x+=rotateSpeed*dt*60;mesh.rotation.y+=rotateSpeed*dt*60;}}
+var timeScale=dt*60;
+if(autoRotate){{mesh.rotation.x+=rotateSpeed*timeScale;mesh.rotation.y+=rotateSpeed*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;mesh.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);
@@ -230,7 +266,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
 
 
-def _generate_particles_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
+def _generate_particles_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str) -> str:
     """生成粒子系统代码。"""
     bg_alpha = "true" if background == "transparent" else "false"
     bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
@@ -261,6 +297,7 @@ var mat=new THREE.PointsMaterial({{color:{color_js},size:0.06,transparent:true,o
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){{
@@ -270,7 +307,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){{points.rotation.y+=rotateSpeed*dt*60;points.rotation.x+=rotateSpeed*0.5*dt*60;}}
+var timeScale=dt*60;
+if(autoRotate){{points.rotation.y+=rotateSpeed*timeScale;points.rotation.x+=rotateSpeed*0.5*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);
@@ -305,7 +344,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 
 
 
-def _generate_galaxy_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
+def _generate_galaxy_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str) -> str:
     bg_alpha = "true" if background == "transparent" else "false"
     bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
     color_hex = color.lstrip("#")
@@ -356,6 +395,7 @@ var mat=new THREE.PointsMaterial({{size:0.04,vertexColors:true,transparent:true,
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){{
@@ -365,7 +405,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){{points.rotation.y+=rotateSpeed*0.8*dt*60;}}
+var timeScale=dt*60;
+if(autoRotate){{points.rotation.y+=rotateSpeed*0.8*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);
@@ -398,7 +440,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
 
 
-def _generate_waves_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
+def _generate_waves_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str) -> str:
     bg_alpha = "true" if background == "transparent" else "false"
     bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
     color_hex = color.lstrip("#")
@@ -438,6 +480,7 @@ var mat=new THREE.PointsMaterial({{color:{color_js},size:0.08,transparent:true,o
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
 var count=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
@@ -448,6 +491,7 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
+var timeScale=dt*60;
 var positions=geo.attributes.position.array;
 var i=0;
 for(var ix=0;ix<AMOUNTX;ix++){{
@@ -457,8 +501,9 @@ for(var ix=0;ix<AMOUNTX;ix++){{
   }}
 }}
 geo.attributes.position.needsUpdate=true;
-count+=0.05*dt*60;
-if(autoRotate){{points.rotation.y+=rotateSpeed*0.5*dt*60;}}
+count+=0.05*timeScale;
+if(autoRotate){{points.rotation.y+=rotateSpeed*0.5*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);
@@ -491,7 +536,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
 
 
-def _generate_network_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
+def _generate_network_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str) -> str:
     bg_alpha = "true" if background == "transparent" else "false"
     bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
     color_hex = color.lstrip("#")
@@ -540,6 +585,7 @@ var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
 group.add(lines);
 
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){{
@@ -584,6 +630,7 @@ lines.geometry.setDrawRange(0,numConnected*2);
 lines.geometry.attributes.position.needsUpdate=true;
 
 if(autoRotate){{group.rotation.y+=rotateSpeed*timeScale;group.rotation.x+=rotateSpeed*0.3*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;group.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);
@@ -622,6 +669,306 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
 
 
+def _generate_dna_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str, neon_light: str) -> str:
+    bg_alpha = "true" if background == "transparent" else "false"
+    bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
+    color_hex = color.lstrip("#")
+    color_js = f'0x{color_hex}'
+
+    script = f'''(function(){{
+var uid="{uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){{host.__threeCleanup();host.__threeCleanup=null;}}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,5.5);
+var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(w,h,false);
+{bg_clear}
+
+if ({neon_light}) {{
+  scene.add(new THREE.AmbientLight(0xffffff,0.3));
+  var d1=new THREE.DirectionalLight(0xffffff,0.5);d1.position.set(2,3,4);scene.add(d1);
+  var p1=new THREE.PointLight(0x00f3ff,1.5,12);p1.position.set(-3,3,2);scene.add(p1);
+  var p2=new THREE.PointLight(0xff00a0,1.5,12);p2.position.set(3,-3,2);scene.add(p2);
+}} else {{
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
+  var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);
+}}
+
+var group=new THREE.Group();
+scene.add(group);
+
+var count=24;
+var sphereGeom=new THREE.SphereGeometry(0.12,16,16);
+var sphereMat=new THREE.MeshStandardMaterial({{color:{color_js},metalness:0.3,roughness:0.4}});
+var lineMat=new THREE.MeshStandardMaterial({{color:{color_js},metalness:0.8,roughness:0.2}});
+
+var nodes=[];
+var cylinders=[];
+
+for(var i=0;i<count;i++){{
+  var t=(i/count)*Math.PI*4;
+  var y=(i/count)*3.2-1.6;
+  var x1=Math.cos(t)*0.85;
+  var z1=Math.sin(t)*0.85;
+  var x2=Math.cos(t+Math.PI)*0.85;
+  var z2=Math.sin(t+Math.PI)*0.85;
+
+  var m1=new THREE.Mesh(sphereGeom,sphereMat);
+  m1.position.set(x1,y,z1);
+  group.add(m1);
+  nodes.push(m1);
+
+  var m2=new THREE.Mesh(sphereGeom,sphereMat);
+  m2.position.set(x2,y,z2);
+  group.add(m2);
+  nodes.push(m2);
+
+  if(i%2===0){{
+    var dx=x2-x1;
+    var dy=0;
+    var dz=z2-z1;
+    var len=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    var cylGeom=new THREE.CylinderGeometry(0.025,0.025,len,8);
+    var cyl=new THREE.Mesh(cylGeom,lineMat);
+    cyl.position.set((x1+x2)/2,y,(z1+z2)/2);
+    var vFrom=new THREE.Vector3(0,1,0);
+    var vTo=new THREE.Vector3(dx,dy,dz).normalize();
+    cyl.quaternion.setFromUnitVectors(vFrom,vTo);
+    group.add(cyl);
+    cylinders.push(cyl);
+  }}
+}}
+
+var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+
+function animate(now){{
+  animId=requestAnimationFrame(animate);
+  if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+  var elapsed=now-lastFrameTime;
+  if(elapsed<FRAME_MIN)return;
+  lastFrameTime=now-(elapsed%FRAME_MIN);
+  var dt=Math.min(elapsed/1000,0.1);
+  var timeScale=dt*60;
+
+  if(autoRotate){{
+    group.rotation.y+=rotateSpeed*timeScale;
+  }}
+  if(floating){{
+    floatOffset+=0.025*timeScale;
+    group.position.y=Math.sin(floatOffset)*0.2;
+  }}
+  renderer.render(scene,camera);
+}}
+requestAnimationFrame(animate);
+
+function onResize(){{
+  var rect=host.getBoundingClientRect();
+  var nw=Math.max(1,Math.round(rect.width));
+  var nh=Math.max(1,Math.round(rect.height));
+  var maxSize=1024;
+  var r=Math.min(1,maxSize/Math.max(nw,nh));
+  nw=Math.round(nw*r);nh=Math.round(nh*r);
+  if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
+}}
+
+host.__threeResize=onResize;
+host.__threePause=function(){{
+  if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
+}};
+host.__threeResume=function(){{
+  if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
+host.__threeCleanup=function(){{
+  if(animId){{cancelAnimationFrame(animId);animId=null;}}
+  try{{
+    sphereGeom.dispose();
+    sphereMat.dispose();
+    lineMat.dispose();
+    cylinders.forEach(function(c){{c.geometry.dispose();}});
+    renderer.dispose();
+  }}catch(e){{}}
+  host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+}};
+}})();'''
+
+    return ('<div class="three-host" data-uid="' + uid +
+            '" style="width:100%;height:100%;position:relative;overflow:hidden;">'
+            '<canvas class="three-canvas"></canvas></div>' +
+            '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
+
+
+def _generate_globe_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str, floating: str, neon_light: str) -> str:
+    bg_alpha = "true" if background == "transparent" else "false"
+    bg_clear = "renderer.setClearColor(0x000000, 0);" if background == "transparent" else f'renderer.setClearColor(new THREE.Color("{background}"), 1);'
+    color_hex = color.lstrip("#")
+    color_js = f'0x{color_hex}'
+
+    script = f'''(function(){{
+var uid="{uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){{host.__threeCleanup();host.__threeCleanup=null;}}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,5);
+
+var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(w,h,false);
+{bg_clear}
+
+if ({neon_light}) {{
+  scene.add(new THREE.AmbientLight(0xffffff,0.3));
+  var d1=new THREE.DirectionalLight(0xffffff,0.5);d1.position.set(2,3,4);scene.add(d1);
+  var p1=new THREE.PointLight(0x00f3ff,1.5,12);p1.position.set(-3,3,2);scene.add(p1);
+  var p2=new THREE.PointLight(0xff00a0,1.5,12);p2.position.set(3,-3,2);scene.add(p2);
+}} else {{
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
+  var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);
+}}
+
+var group=new THREE.Group();
+scene.add(group);
+
+// 1. Earth wireframe
+var earthGeo=new THREE.SphereGeometry(1.0,18,18);
+var earthMat=new THREE.MeshStandardMaterial({{
+  color:{color_js},
+  wireframe:true,
+  transparent:true,
+  opacity:0.35,
+  metalness:0.1,
+  roughness:0.9
+}});
+var earth=new THREE.Mesh(earthGeo,earthMat);
+group.add(earth);
+
+// 2. Inner glow-like solid sphere
+var coreGeo=new THREE.SphereGeometry(0.95,16,16);
+var coreMat=new THREE.MeshStandardMaterial({{
+  color:{color_js},
+  transparent:true,
+  opacity:0.1,
+  roughness:0.8
+}});
+var core=new THREE.Mesh(coreGeo,coreMat);
+group.add(core);
+
+// 3. Floating orbit rings
+var ring1Geo=new THREE.TorusGeometry(1.35,0.015,8,64);
+var ringMat=new THREE.MeshBasicMaterial({{color:{color_js},transparent:true,opacity:0.55}});
+var ring1=new THREE.Mesh(ring1Geo,ringMat);
+ring1.rotation.x=Math.PI/2.5;
+ring1.rotation.y=Math.PI/8;
+group.add(ring1);
+
+var ring2Geo=new THREE.TorusGeometry(1.5,0.012,8,64);
+var ring2Mat=new THREE.MeshBasicMaterial({{color:{color_js},transparent:true,opacity:0.3}});
+var ring2=new THREE.Mesh(ring2Geo,ring2Mat);
+ring2.rotation.x=-Math.PI/3;
+ring2.rotation.y=-Math.PI/6;
+group.add(ring2);
+
+// 4. Satellite (little sphere traveling around ring1)
+var satGeo=new THREE.SphereGeometry(0.06,8,8);
+var satMat=new THREE.MeshBasicMaterial({{color:0xffffff}});
+var sat=new THREE.Mesh(satGeo,satMat);
+group.add(sat);
+
+var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
+var floating={floating},floatOffset=0;
+var satAngle=0;
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+
+function animate(now){{
+  animId=requestAnimationFrame(animate);
+  if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+  var elapsed=now-lastFrameTime;
+  if(elapsed<FRAME_MIN)return;
+  lastFrameTime=now-(elapsed%FRAME_MIN);
+  var dt=Math.min(elapsed/1000,0.1);
+  var timeScale=dt*60;
+
+  if(autoRotate){{
+    earth.rotation.y+=rotateSpeed*timeScale;
+    earth.rotation.x+=rotateSpeed*0.3*timeScale;
+    ring1.rotation.z+=rotateSpeed*0.5*timeScale;
+    ring2.rotation.z-=rotateSpeed*0.4*timeScale;
+  }}
+  
+  satAngle+=rotateSpeed*2*timeScale;
+  var localX = Math.cos(satAngle)*1.35;
+  var localY = Math.sin(satAngle)*1.35;
+  var pos = new THREE.Vector3(localX, localY, 0);
+  pos.applyEuler(ring1.rotation);
+  sat.position.copy(pos);
+
+  if(floating){{
+    floatOffset+=0.025*timeScale;
+    group.position.y=Math.sin(floatOffset)*0.2;
+  }}
+  renderer.render(scene,camera);
+}}
+requestAnimationFrame(animate);
+
+function onResize(){{
+  var rect=host.getBoundingClientRect();
+  var nw=Math.max(1,Math.round(rect.width));
+  var nh=Math.max(1,Math.round(rect.height));
+  var maxSize=1024;
+  var r=Math.min(1,maxSize/Math.max(nw,nh));
+  nw=Math.round(nw*r);nh=Math.round(nh*r);
+  if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
+}}
+
+host.__threeResize=onResize;
+host.__threePause=function(){{
+  if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
+}};
+host.__threeResume=function(){{
+  if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
+host.__threeCleanup=function(){{
+  if(animId){{cancelAnimationFrame(animId);animId=null;}}
+  try{{
+    earthGeo.dispose();
+    earthMat.dispose();
+    coreGeo.dispose();
+    coreMat.dispose();
+    ring1Geo.dispose();
+    ring2Geo.dispose();
+    ringMat.dispose();
+    ring2Mat.dispose();
+    satGeo.dispose();
+    satMat.dispose();
+    renderer.dispose();
+  }}catch(e){{}}
+  host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+}};
+}})();'''
+
+    return ('<div class="three-host" data-uid="' + uid +
+            '" style="width:100%;height:100%;position:relative;overflow:hidden;">'
+            '<canvas class="three-canvas"></canvas></div>' +
+            '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
+
+
 def build_3d_element(
     geometry: str = "cube",
     color: str = "#C5E803",
@@ -635,6 +982,8 @@ def build_3d_element(
     height: int = 240,
     uid: str | None = None,
     custom_code: str | None = None,
+    floating: bool = True,
+    neon_light: bool = False,
 ) -> dict[str, Any]:
     """构造一个 3D 元素 dict（type='html' + meta.role='3d'）。
 
@@ -656,6 +1005,8 @@ def build_3d_element(
         "roughness": roughness,
         "wireframe": wireframe,
         "background": background,
+        "floating": floating,
+        "neonLight": neon_light,
     }
 
     if custom_code:

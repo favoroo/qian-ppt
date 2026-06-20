@@ -5989,7 +5989,13 @@ const ANIMATION_PRESETS = [
   { name: 'pulse-circle',   icon: 'radio_button_unchecked', labelKey: 'animation.pulseCircle', label: '呼吸圆框' },
   { name: 'pulse-square',   icon: 'check_box_outline_blank', labelKey: 'animation.pulseSquare', label: '呼吸方框' },
   { name: 'moving-arrow',   icon: 'arrow_forward', labelKey: 'animation.movingArrow', label: '移动箭头' },
-  { name: 'pulse-dot',      icon: 'fiber_manual_record', labelKey: 'animation.pulseDot', label: '脉冲圆点' }
+  { name: 'pulse-dot',      icon: 'fiber_manual_record', labelKey: 'animation.pulseDot', label: '脉冲圆点' },
+  { name: 'radar-scan',     icon: 'explore',                labelKey: 'animation.radarScan',     label: '雷达扫描' },
+  { name: 'double-ripple',  icon: 'wifi_tethering',         labelKey: 'animation.doubleRipple',  label: '水波涟漪' },
+  { name: 'glowing-ring',   icon: 'progress_activity',      labelKey: 'animation.glowingRing',   label: '发光圆环' },
+  { name: 'meteor-shower',  icon: 'blur_on',                labelKey: 'animation.meteorShower',  label: '科技流星' },
+  { name: 'dash-flow',      icon: 'route',                  labelKey: 'animation.dashFlow',      label: '流程管道' },
+  { name: 'neon-glowing',   icon: 'wb_iridescent',          labelKey: 'animation.neonGlowing',   label: '霓虹呼吸' }
 ];
 
 function _genAnimUid() {
@@ -6048,6 +6054,124 @@ function generateAnimationHtml(type, uid, data) {
         .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
         .${cls}-core { width: 40%; height: 40%; border-radius: 50%; background: ${color}; animation: ${cls}-dot ${duration}s ease-in-out infinite; }
         @keyframes ${cls}-dot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } }
+      `;
+      break;
+    }
+    case 'radar-scan': {
+      html = `<div class="${cls}">
+        <div class="${cls}-circle ${cls}-c1"></div>
+        <div class="${cls}-circle ${cls}-c2"></div>
+        <div class="${cls}-circle ${cls}-c3"></div>
+        <div class="${cls}-sweep"></div>
+      </div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .${cls}-circle { position: absolute; border: 1.5px solid ${color}; border-radius: 50%; opacity: 0.3; box-sizing: border-box; }
+        .${cls}-c1 { width: 30%; height: 30%; }
+        .${cls}-c2 { width: 60%; height: 60%; }
+        .${cls}-c3 { width: 90%; height: 90%; }
+        .${cls}-sweep {
+          position: absolute; width: 45%; height: 45%;
+          top: 5%; left: 5%;
+          background: conic-gradient(from 0deg, ${color} 0%, transparent 60%);
+          border-radius: 100% 0 0 0;
+          transform-origin: bottom right;
+          animation: ${cls}-scan ${duration}s linear infinite;
+          opacity: 0.4;
+        }
+        @keyframes ${cls}-scan { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `;
+      break;
+    }
+    case 'double-ripple': {
+      html = `<div class="${cls}"><div class="${cls}-ripple1"></div><div class="${cls}-ripple2"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .${cls}-ripple1, .${cls}-ripple2 {
+          position: absolute; width: 80%; height: 80%;
+          border-radius: 50%; border: 3px solid ${color};
+          animation: ${cls}-ripple ${duration}s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+          opacity: 0;
+          box-sizing: border-box;
+        }
+        .${cls}-ripple2 { animation-delay: ${duration / 2}s; }
+        @keyframes ${cls}-ripple {
+          0% { transform: scale(0.1); opacity: 1; }
+          100% { transform: scale(1.1); opacity: 0; }
+        }
+      `;
+      break;
+    }
+    case 'glowing-ring': {
+      html = `<div class="${cls}"><div class="${cls}-ring"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .${cls}-ring {
+          width: 75%; height: 75%;
+          border-radius: 50%;
+          border: 4px solid transparent;
+          border-top-color: ${color};
+          border-right-color: ${color};
+          box-shadow: 0 0 12px ${color};
+          animation: ${cls}-rotate ${duration}s linear infinite;
+          box-sizing: border-box;
+        }
+        @keyframes ${cls}-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `;
+      break;
+    }
+    case 'meteor-shower': {
+      html = `<div class="${cls}">
+        <div class="${cls}-trail ${cls}-t1"></div>
+        <div class="${cls}-trail ${cls}-t2"></div>
+        <div class="${cls}-trail ${cls}-t3"></div>
+      </div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; position: relative; overflow: hidden; }
+        .${cls}-trail {
+          position: absolute; width: 4px; height: 40px;
+          background: linear-gradient(to top, ${color}, transparent);
+          opacity: 0;
+          transform: rotate(45deg);
+          animation: ${cls}-shoot ${duration}s linear infinite;
+        }
+        .${cls}-t1 { top: -40px; left: 15%; animation-delay: 0s; }
+        .${cls}-t2 { top: -40px; left: 45%; animation-delay: ${duration * 0.3}s; }
+        .${cls}-t3 { top: -40px; left: 75%; animation-delay: ${duration * 0.6}s; }
+        @keyframes ${cls}-shoot {
+          0% { transform: translate(0, 0) rotate(45deg); opacity: 0; }
+          10% { opacity: 1; }
+          60% { opacity: 0; }
+          100% { transform: translate(120px, 120px) rotate(45deg); opacity: 0; }
+        }
+      `;
+      break;
+    }
+    case 'dash-flow': {
+      html = `<svg class="${cls}" viewBox="0 0 100 100" preserveAspectRatio="none"><rect class="${cls}-path" x="4" y="4" width="92" height="92" rx="6" ry="6" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="16 12" stroke-linecap="round"/></svg>`;
+      css = `
+        .${cls} { display: block; width: 100%; height: 100%; }
+        .${cls}-path { animation: ${cls}-flow ${duration}s linear infinite; }
+        @keyframes ${cls}-flow { from { stroke-dashoffset: 56; } to { stroke-dashoffset: 0; } }
+      `;
+      break;
+    }
+    case 'neon-glowing': {
+      html = `<div class="${cls}"><div class="${cls}-card"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .${cls}-card {
+          width: 90%; height: 90%;
+          border: 2px solid ${color};
+          border-radius: 8px;
+          box-shadow: 0 0 8px ${color}, inset 0 0 8px ${color};
+          animation: ${cls}-neon ${duration}s ease-in-out infinite alternate;
+          box-sizing: border-box;
+        }
+        @keyframes ${cls}-neon {
+          from { box-shadow: 0 0 4px ${color}, inset 0 0 2px ${color}; opacity: 0.6; }
+          to { box-shadow: 0 0 16px ${color}, inset 0 0 8px ${color}; opacity: 1; }
+        }
       `;
       break;
     }
@@ -7594,6 +7718,35 @@ function applyProp(propName, value, commit = true) {
     pushHistory();
     scheduleAutoSave();
   }
+}
+
+function alignElementToCanvas(type) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) return;
+
+  const bounds = getObjectBounds(obj);
+  if (!bounds) return;
+
+  let deltaX = 0, deltaY = 0;
+
+  switch (type) {
+    case 'left':     deltaX = 0 - bounds.left; break;
+    case 'centerH':   deltaX = (CANVAS_BASE_WIDTH / 2) - bounds.centerX; break;
+    case 'right':     deltaX = CANVAS_BASE_WIDTH - bounds.right; break;
+    case 'top':       deltaY = 0 - bounds.top; break;
+    case 'centerV':   deltaY = (CANVAS_BASE_HEIGHT / 2) - bounds.centerY; break;
+    case 'bottom':    deltaY = CANVAS_BASE_HEIGHT - bounds.bottom; break;
+    default: return;
+  }
+
+  obj.set('left', obj.left + deltaX);
+  obj.set('top', obj.top + deltaY);
+  obj.setCoords();
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+  updatePropsPanel();
 }
 
 function applyImageClipType(value) {
@@ -10986,6 +11139,9 @@ const THREE_D_PRESETS = [
   { name: 'galaxy', icon: 'cyclone', labelKey: 'threeD.galaxy', label: '星系粒子' },
   { name: 'waves', icon: 'waves', labelKey: 'threeD.waves', label: '动态波浪' },
   { name: 'network', icon: 'hub', labelKey: 'threeD.network', label: '科技网络' },
+  { name: 'torusKnot', icon: 'all_inclusive', labelKey: 'threeD.torusKnot', label: '圆环结' },
+  { name: 'dna', icon: 'dna', labelKey: 'threeD.dna', label: '双螺旋' },
+  { name: 'globe', icon: 'language', labelKey: 'threeD.globe', label: '科技地球' },
   { name: 'custom', icon: 'code', labelKey: 'threeD.custom', label: '自定义代码' }
 ];
 
@@ -10997,7 +11153,9 @@ const THREE_D_DEFAULT_DATA = {
   metalness: 0.1,
   roughness: 0.85,
   wireframe: false,
-  background: 'transparent'
+  background: 'transparent',
+  floating: true,
+  neonLight: false
 };
 
 const THREE_D_CSS = '.three-canvas{width:100%;height:100%;display:block}';
@@ -11014,6 +11172,7 @@ function _threeGeometryCode(geometry) {
     case 'cylinder': return 'var geometry = new THREE.CylinderGeometry(0.8, 0.8, 1.8, 48);';
     case 'cone': return 'var geometry = new THREE.ConeGeometry(1, 1.8, 48);';
     case 'icosahedron': return 'var geometry = new THREE.IcosahedronGeometry(1.2, 0);';
+    case 'torusKnot': return 'var geometry = new THREE.TorusKnotGeometry(0.7, 0.22, 120, 16);';
     default: return 'var geometry = new THREE.BoxGeometry(1.5, 1.5, 1.5);';
   }
 }
@@ -11029,18 +11188,26 @@ function generateThreeJSCode(data, uid) {
   const roughness = parseFloat(data.roughness ?? 0.85);
   const wireframe = data.wireframe ? 'true' : 'false';
   const background = data.background || 'transparent';
+  const floating = data.floating !== false ? 'true' : 'false';
+  const neonLight = data.neonLight ? 'true' : 'false';
 
   if (geometry === 'particles') {
-    return _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background);
+    return _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background, floating);
   }
   if (geometry === 'galaxy') {
-    return _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background);
+    return _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background, floating);
   }
   if (geometry === 'waves') {
-    return _generateWavesCode(uid, color, autoRotate, rotateSpeed, background);
+    return _generateWavesCode(uid, color, autoRotate, rotateSpeed, background, floating);
   }
   if (geometry === 'network') {
-    return _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background);
+    return _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background, floating);
+  }
+  if (geometry === 'dna') {
+    return _generateDnaCode(uid, color, autoRotate, rotateSpeed, background, floating, neonLight);
+  }
+  if (geometry === 'globe') {
+    return _generateGlobeCode(uid, color, autoRotate, rotateSpeed, background, floating, neonLight);
   }
 
   const geomCode = _threeGeometryCode(geometry);
@@ -11049,6 +11216,15 @@ function generateThreeJSCode(data, uid) {
     ? 'renderer.setClearColor(0x000000, 0);'
     : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
   const colorJs = '0x' + color;
+
+  const lightSetup = neonLight === 'true'
+    ? `scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+var d1=new THREE.DirectionalLight(0xffffff, 0.5);d1.position.set(2,3,4);scene.add(d1);
+var p1=new THREE.PointLight(0x00f3ff, 1.5, 12);p1.position.set(-3,3,2);scene.add(p1);
+var p2=new THREE.PointLight(0xff00a0, 1.5, 12);p2.position.set(3,-3,2);scene.add(p2);`
+    : `scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+var d1=new THREE.DirectionalLight(0xffffff, 0.8);d1.position.set(2,3,4);scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff, 0.3);d2.position.set(-2,-1,-3);scene.add(d2);`;
 
   const script = `(function(){
 var uid="${uid}";
@@ -11065,9 +11241,7 @@ var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlp
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
 ${bgClear}
-scene.add(new THREE.AmbientLight(0xffffff,0.5));
-var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
-var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.add(d2);
+${lightSetup}
 ${geomCode}
 var material=new THREE.MeshStandardMaterial({color:${colorJs},metalness:${metalness},roughness:${roughness},wireframe:${wireframe}});
 var mesh=new THREE.Mesh(geometry,material);
@@ -11080,6 +11254,7 @@ var wireframeMesh=new THREE.Mesh(wireframeGeom,wireframeMat);
 mesh.add(wireframeMesh);
 }
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){
@@ -11089,7 +11264,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){mesh.rotation.x+=rotateSpeed*dt*60;mesh.rotation.y+=rotateSpeed*dt*60;}
+var timeScale=dt*60;
+if(autoRotate){mesh.rotation.x+=rotateSpeed*timeScale;mesh.rotation.y+=rotateSpeed*timeScale;}
+if(floating){floatOffset+=0.025*timeScale;mesh.position.y=Math.sin(floatOffset)*0.2;}
 renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -11125,7 +11302,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div>' + '<scr' + 'ipt>' + script + '</scr' + 'ipt>';
 }
 
-function _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background) {
+function _generateParticlesCode(uid, color, autoRotate, rotateSpeed, background, floating) {
   const bgAlpha = background === 'transparent' ? 'true' : 'false';
   const bgClear = background === 'transparent'
     ? 'renderer.setClearColor(0x000000, 0);'
@@ -11156,6 +11333,7 @@ var mat=new THREE.PointsMaterial({color:${colorJs},size:0.06,transparent:true,op
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){
@@ -11165,7 +11343,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){points.rotation.y+=rotateSpeed*dt*60;points.rotation.x+=rotateSpeed*0.5*dt*60;}
+var timeScale=dt*60;
+if(autoRotate){points.rotation.y+=rotateSpeed*timeScale;points.rotation.x+=rotateSpeed*0.5*timeScale;}
+if(floating){floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}
 renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -11196,7 +11376,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 }
 
 
-function _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background) {
+function _generateGalaxyCode(uid, color, autoRotate, rotateSpeed, background, floating) {
   const bgAlpha = background === 'transparent' ? 'true' : 'false';
   const bgClear = background === 'transparent'
     ? 'renderer.setClearColor(0x000000, 0);'
@@ -11248,6 +11428,7 @@ var mat=new THREE.PointsMaterial({size:0.04,vertexColors:true,transparent:true,o
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){
@@ -11257,7 +11438,9 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
-if(autoRotate){points.rotation.y+=rotateSpeed*0.8*dt*60;}
+var timeScale=dt*60;
+if(autoRotate){points.rotation.y+=rotateSpeed*0.8*timeScale;}
+if(floating){floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}
 renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -11286,7 +11469,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
 }
 
-function _generateWavesCode(uid, color, autoRotate, rotateSpeed, background) {
+function _generateWavesCode(uid, color, autoRotate, rotateSpeed, background, floating) {
   const bgAlpha = background === 'transparent' ? 'true' : 'false';
   const bgClear = background === 'transparent'
     ? 'renderer.setClearColor(0x000000, 0);'
@@ -11327,6 +11510,7 @@ var mat=new THREE.PointsMaterial({color:${colorJs},size:0.08,transparent:true,op
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
 var count=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
@@ -11337,6 +11521,7 @@ var elapsed=now-lastFrameTime;
 if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
+var timeScale=dt*60;
 var positions=geo.attributes.position.array;
 var i=0;
 for(var ix=0;ix<AMOUNTX;ix++){
@@ -11346,8 +11531,9 @@ for(var ix=0;ix<AMOUNTX;ix++){
   }
 }
 geo.attributes.position.needsUpdate=true;
-count+=0.05*dt*60;
-if(autoRotate){points.rotation.y+=rotateSpeed*0.5*dt*60;}
+count+=0.05*timeScale;
+if(autoRotate){points.rotation.y+=rotateSpeed*0.5*timeScale;}
+if(floating){floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}
 renderer.render(scene,camera);
 }
 requestAnimationFrame(animate);
@@ -11376,7 +11562,7 @@ host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
 }
 
-function _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background) {
+function _generateNetworkCode(uid, color, autoRotate, rotateSpeed, background, floating) {
   const bgAlpha = background === 'transparent' ? 'true' : 'false';
   const bgClear = background === 'transparent'
     ? 'renderer.setClearColor(0x000000, 0);'
@@ -11426,6 +11612,7 @@ var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
 group.add(lines);
 
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
 function animate(now){
@@ -11470,7 +11657,332 @@ lines.geometry.setDrawRange(0,numConnected*2);
 lines.geometry.attributes.position.needsUpdate=true;
 
 if(autoRotate){group.rotation.y+=rotateSpeed*timeScale;group.rotation.x+=rotateSpeed*0.3*timeScale;}
+if(floating){floatOffset+=0.025*timeScale;group.position.y=Math.sin(floatOffset)*0.2;}
 renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+function onResize(){
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=1024;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
+}
+host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
+host.__threeCleanup=function(){
+if(animId){cancelAnimationFrame(animId);animId=null;}
+try{
+  geometry.dispose();
+  lineGeometry.dispose();
+  pMaterial.dispose();
+  lineMaterial.dispose();
+  renderer.dispose();
+}catch(e){}
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+
+function _generateDnaCode(uid, color, autoRotate, rotateSpeed, background, floating, neonLight) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const lightSetup = neonLight === 'true'
+    ? `scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+var d1=new THREE.DirectionalLight(0xffffff, 0.5);d1.position.set(2,3,4);scene.add(d1);
+var p1=new THREE.PointLight(0x00f3ff, 1.5, 12);p1.position.set(-3,3,2);scene.add(p1);
+var p2=new THREE.PointLight(0xff00a0, 1.5, 12);p2.position.set(3,-3,2);scene.add(p2);`
+    : `scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+var d1=new THREE.DirectionalLight(0xffffff, 0.8);d1.position.set(2,3,4);scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff, 0.3);d2.position.set(-2,-1,-3);scene.add(d2);`;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,5.5);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(w,h,false);
+${bgClear}
+${lightSetup}
+
+var group=new THREE.Group();
+scene.add(group);
+
+var count=24;
+var sphereGeom=new THREE.SphereGeometry(0.12,16,16);
+var sphereMat=new THREE.MeshStandardMaterial({color:${colorJs},metalness:0.3,roughness:0.4});
+var lineMat=new THREE.MeshStandardMaterial({color:${colorJs},metalness:0.8,roughness:0.2});
+
+var nodes=[];
+var cylinders=[];
+
+for(var i=0;i<count;i++){
+  var t=(i/count)*Math.PI*4;
+  var y=(i/count)*3.2-1.6;
+  var x1=Math.cos(t)*0.85;
+  var z1=Math.sin(t)*0.85;
+  var x2=Math.cos(t+Math.PI)*0.85;
+  var z2=Math.sin(t+Math.PI)*0.85;
+
+  var m1=new THREE.Mesh(sphereGeom,sphereMat);
+  m1.position.set(x1,y,z1);
+  group.add(m1);
+  nodes.push(m1);
+
+  var m2=new THREE.Mesh(sphereGeom,sphereMat);
+  m2.position.set(x2,y,z2);
+  group.add(m2);
+  nodes.push(m2);
+
+  if(i%2===0){
+    var dx=x2-x1;
+    var dy=0;
+    var dz=z2-z1;
+    var len=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    var cylGeom=new THREE.CylinderGeometry(0.025,0.025,len,8);
+    var cyl=new THREE.Mesh(cylGeom,lineMat);
+    cyl.position.set((x1+x2)/2,y,(z1+z2)/2);
+    var vFrom=new THREE.Vector3(0,1,0);
+    var vTo=new THREE.Vector3(dx,dy,dz).normalize();
+    cyl.quaternion.setFromUnitVectors(vFrom,vTo);
+    group.add(cyl);
+    cylinders.push(cyl);
+  }
+}
+
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+
+function animate(now){
+  animId=requestAnimationFrame(animate);
+  if(isPaused||document.hidden){lastFrameTime=now;return;}
+  var elapsed=now-lastFrameTime;
+  if(elapsed<FRAME_MIN)return;
+  lastFrameTime=now-(elapsed%FRAME_MIN);
+  var dt=Math.min(elapsed/1000,0.1);
+  var timeScale=dt*60;
+
+  if(autoRotate){
+    group.rotation.y+=rotateSpeed*timeScale;
+  }
+  if(floating){
+    floatOffset+=0.025*timeScale;
+    group.position.y=Math.sin(floatOffset)*0.2;
+  }
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
+function onResize(){
+  var rect=host.getBoundingClientRect();
+  var nw=Math.max(1,Math.round(rect.width));
+  var nh=Math.max(1,Math.round(rect.height));
+  var maxSize=1024;
+  var r=Math.min(1,maxSize/Math.max(nw,nh));
+  nw=Math.round(nw*r);nh=Math.round(nh*r);
+  if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
+}
+
+host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
+host.__threeCleanup=function(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  try{
+    sphereGeom.dispose();
+    sphereMat.dispose();
+    lineMat.dispose();
+    cylinders.forEach(function(c){c.geometry.dispose();});
+    renderer.dispose();
+  }catch(e){}
+  host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
+}
+
+
+function _generateGlobeCode(uid, color, autoRotate, rotateSpeed, background, floating, neonLight) {
+  const bgAlpha = background === 'transparent' ? 'true' : 'false';
+  const bgClear = background === 'transparent'
+    ? 'renderer.setClearColor(0x000000, 0);'
+    : `renderer.setClearColor(new THREE.Color("${background}"), 1);`;
+  const colorJs = '0x' + color;
+
+  const lightSetup = neonLight === 'true'
+    ? `scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+var d1=new THREE.DirectionalLight(0xffffff, 0.5);d1.position.set(2,3,4);scene.add(d1);
+var p1=new THREE.PointLight(0x00f3ff, 1.5, 12);p1.position.set(-3,3,2);scene.add(p1);
+var p2=new THREE.PointLight(0xff00a0, 1.5, 12);p2.position.set(3,-3,2);scene.add(p2);`
+    : `scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+var d1=new THREE.DirectionalLight(0xffffff, 0.8);d1.position.set(2,3,4);scene.add(d1);
+var d2=new THREE.DirectionalLight(0xffffff, 0.3);d2.position.set(-2,-1,-3);scene.add(d2);`;
+
+  const script = `(function(){
+var uid="${uid}";
+var host=document.querySelector('[data-uid="'+uid+'"]');
+if(!host||!window.THREE)return;
+if(host.__threeCleanup){host.__threeCleanup();host.__threeCleanup=null;}
+var canvas=host.querySelector('canvas.three-canvas');
+if(!canvas){canvas=document.createElement('canvas');canvas.className='three-canvas';host.appendChild(canvas);}
+var w=host.clientWidth||240,h=host.clientHeight||240;
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
+camera.position.set(0,0,5);
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(w,h,false);
+${bgClear}
+${lightSetup}
+
+var group=new THREE.Group();
+scene.add(group);
+
+// 1. Earth wireframe
+var earthGeo=new THREE.SphereGeometry(1.0,18,18);
+var earthMat=new THREE.MeshStandardMaterial({
+  color:${colorJs},
+  wireframe:true,
+  transparent:true,
+  opacity:0.35,
+  metalness:0.1,
+  roughness:0.9
+});
+var earth=new THREE.Mesh(earthGeo,earthMat);
+group.add(earth);
+
+// 2. Inner glow-like solid sphere
+var coreGeo=new THREE.SphereGeometry(0.95,16,16);
+var coreMat=new THREE.MeshStandardMaterial({
+  color:${colorJs},
+  transparent:true,
+  opacity:0.1,
+  roughness:0.8
+});
+var core=new THREE.Mesh(coreGeo,coreMat);
+group.add(core);
+
+// 3. Floating orbit rings
+var ring1Geo=new THREE.TorusGeometry(1.35,0.015,8,64);
+var ringMat=new THREE.MeshBasicMaterial({color:${colorJs},transparent:true,opacity:0.55});
+var ring1=new THREE.Mesh(ring1Geo,ringMat);
+ring1.rotation.x=Math.PI/2.5;
+ring1.rotation.y=Math.PI/8;
+group.add(ring1);
+
+var ring2Geo=new THREE.TorusGeometry(1.5,0.012,8,64);
+var ring2Mat=new THREE.MeshBasicMaterial({color:${colorJs},transparent:true,opacity:0.3});
+var ring2=new THREE.Mesh(ring2Geo,ring2Mat);
+ring2.rotation.x=-Math.PI/3;
+ring2.rotation.y=-Math.PI/6;
+group.add(ring2);
+
+// 4. Satellite (little sphere traveling around ring1)
+var satGeo=new THREE.SphereGeometry(0.06,8,8);
+var satMat=new THREE.MeshBasicMaterial({color:0xffffff});
+var sat=new THREE.Mesh(satGeo,satMat);
+group.add(sat);
+
+var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
+var floating=${floating},floatOffset=0;
+var satAngle=0;
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+
+function animate(now){
+  animId=requestAnimationFrame(animate);
+  if(isPaused||document.hidden){lastFrameTime=now;return;}
+  var elapsed=now-lastFrameTime;
+  if(elapsed<FRAME_MIN)return;
+  lastFrameTime=now-(elapsed%FRAME_MIN);
+  var dt=Math.min(elapsed/1000,0.1);
+  var timeScale=dt*60;
+
+  if(autoRotate){
+    earth.rotation.y+=rotateSpeed*timeScale;
+    earth.rotation.x+=rotateSpeed*0.3*timeScale;
+    ring1.rotation.z+=rotateSpeed*0.5*timeScale;
+    ring2.rotation.z-=rotateSpeed*0.4*timeScale;
+  }
+  
+  satAngle+=rotateSpeed*2*timeScale;
+  var localX = Math.cos(satAngle)*1.35;
+  var localY = Math.sin(satAngle)*1.35;
+  var pos = new THREE.Vector3(localX, localY, 0);
+  pos.applyEuler(ring1.rotation);
+  sat.position.copy(pos);
+
+  if(floating){
+    floatOffset+=0.025*timeScale;
+    group.position.y=Math.sin(floatOffset)*0.2;
+  }
+  renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+
+function onResize(){
+  var rect=host.getBoundingClientRect();
+  var nw=Math.max(1,Math.round(rect.width));
+  var nh=Math.max(1,Math.round(rect.height));
+  var maxSize=1024;
+  var r=Math.min(1,maxSize/Math.max(nw,nh));
+  nw=Math.round(nw*r);nh=Math.round(nh*r);
+  if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
+}
+
+host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
+host.__threeCleanup=function(){
+  if(animId){cancelAnimationFrame(animId);animId=null;}
+  try{
+    earthGeo.dispose();
+    earthMat.dispose();
+    coreGeo.dispose();
+    coreMat.dispose();
+    ring1Geo.dispose();
+    ring2Geo.dispose();
+    ringMat.dispose();
+    ring2Mat.dispose();
+    satGeo.dispose();
+    satMat.dispose();
+    renderer.dispose();
+  }catch(e){}
+  host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+};
+})();`;
+  return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
 }
 requestAnimationFrame(animate);
 function onResize(){
@@ -11661,6 +12173,8 @@ function render3DProps(obj) {
   const metalness = data.metalness ?? 0.1;
   const roughness = data.roughness ?? 0.85;
   const wireframe = data.wireframe || false;
+  const floating = data.floating !== false;
+  const neonLight = data.neonLight || false;
 
   const isCustom = geometry === 'custom';
 
@@ -11674,7 +12188,10 @@ function render3DProps(obj) {
     { value: 'particles', label: t('threeD.particles') },
     { value: 'galaxy', label: t('threeD.galaxy') },
     { value: 'waves', label: t('threeD.waves') },
-    { value: 'network', label: t('threeD.network') }
+    { value: 'network', label: t('threeD.network') },
+    { value: 'torusKnot', label: t('threeD.torusKnot') },
+    { value: 'dna', label: t('threeD.dna') },
+    { value: 'globe', label: t('threeD.globe') }
   ];
 
   const sectionTitle = t('props.section.threeDProps');
@@ -11714,6 +12231,18 @@ function render3DProps(obj) {
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="prop3DAutoRotate" ${autoRotate ? 'checked' : ''} onchange="apply3DProp('autoRotate', this.checked)">
           ${autoRotateLabel !== 'props.label.autoRotate' ? autoRotateLabel : '自动旋转'}
+        </label>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="prop3DFloating" ${floating ? 'checked' : ''} onchange="apply3DProp('floating', this.checked)">
+          ${t('props.label.floating') !== 'props.label.floating' ? t('props.label.floating') : '漂浮效果'}
+        </label>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+          <input type="checkbox" id="prop3DNeonLight" ${neonLight ? 'checked' : ''} onchange="apply3DProp('neonLight', this.checked)">
+          ${t('props.label.neonLight') !== 'props.label.neonLight' ? t('props.label.neonLight') : '炫彩高光'}
         </label>
       </div>
       <div class="form-group" style="margin-bottom:12px;">
