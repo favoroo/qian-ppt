@@ -681,6 +681,7 @@
   .canvas-stage-inner .canvas-circle,
   .canvas-stage-inner .canvas-triangle,
   .canvas-stage-inner .canvas-triangle-svg,
+  .canvas-stage-inner .canvas-polygon-svg,
   .canvas-stage-inner .canvas-html{
     position:absolute;
     max-width:none;
@@ -1484,6 +1485,8 @@
       <svg class="canvas-triangle-svg" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};transform:rotate({{ elem.angle | default(0) }}deg)" viewBox="0 0 {{ elem.width | default(180) }} {{ elem.height | default(160) }}" preserveAspectRatio="none">
         <polygon points="{{ (elem.width | default(180)) / 2 }},0 {{ elem.width | default(180) }},{{ elem.height | default(160) }} 0,{{ elem.height | default(160) }}" fill="{{ elem.fill | default('#C5E803') }}" stroke="{{ elem.stroke or 'none' }}" stroke-width="{{ elem.strokeWidth | default(0) }}" vector-effect="non-scaling-stroke"/>
       </svg>
+      {% elif elem.type == 'polygon' %}
+      {{ elem | render_polygon | safe }}
       {% elif elem.type == 'html' %}
       <div class="canvas-html" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};overflow:hidden;pointer-events:none">
         {% if elem.css %}<style>{{ elem.css }}</style>{% endif %}

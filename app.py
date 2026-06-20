@@ -616,6 +616,48 @@ def ensure_element_id(element, used_ids):
 
 # ============ Template Filters ============
 
+@app.template_filter('render_polygon')
+def render_polygon_filter(elem):
+    """将 Fabric.js 的 polygon 元素渲染为 SVG polygon 标签"""
+    points = elem.get('points', [])
+    if not points:
+        return ''
+    
+    xs = [p.get('x', 0) for p in points]
+    ys = [p.get('y', 0) for p in points]
+    if not xs or not ys:
+        return ''
+    
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+    w = max_x - min_x
+    h = max_y - min_y
+    if w <= 0: w = 1
+    if h <= 0: h = 1
+    
+    points_str = " ".join(f"{p.get('x', 0)},{p.get('y', 0)}" for p in points)
+    
+    fill = elem.get('fill', '#C5E803')
+    stroke = elem.get('stroke', '')
+    stroke_str = f'stroke="{stroke}"' if stroke else 'stroke="none"'
+    stroke_width = elem.get('strokeWidth', 0)
+    opacity = elem.get('opacity', 1)
+    angle = elem.get('angle', 0)
+    left = elem.get('x', 0)
+    top = elem.get('y', 0)
+    width = elem.get('width', 180)
+    height = elem.get('height', 180)
+    
+    svg = (
+        f'<svg class="canvas-polygon-svg" '
+        f'style="left:{left}px;top:{top}px;width:{width}px;height:{height}px;opacity:{opacity};transform:rotate({angle}deg)" '
+        f'viewBox="{min_x} {min_y} {w} {h}" preserveAspectRatio="none">'
+        f'<polygon points="{points_str}" fill="{fill}" {stroke_str} stroke-width="{stroke_width}" vector-effect="non-scaling-stroke"/>'
+        f'</svg>'
+    )
+    return svg
+
+
 @app.template_filter('render_styled_text')
 def render_styled_text_filter(elem):
     """将 Fabric.js 包含局部字符样式的 text 渲染为 HTML span 标签"""

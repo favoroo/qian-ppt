@@ -2869,6 +2869,10 @@ function applyThemeColorToCanvas(newHex) {
       obj.set('fill', newHex);
       changed = true;
     }
+    if (obj.strokeThemeLink) {
+      obj.set('stroke', newHex);
+      changed = true;
+    }
     
     if (obj.elementType === 'html' && obj.meta && obj.meta.themeLinks && obj.meta.data) {
       let componentChanged = false;
@@ -2908,6 +2912,9 @@ function updateThemeColorInSlidesData(newHex) {
       slide.canvas_elements.forEach(elem => {
         if (elem.fillThemeLink) {
           elem.fill = newHex;
+        }
+        if (elem.strokeThemeLink) {
+          elem.stroke = newHex;
         }
         
         if (elem.type === 'html' && elem.meta && elem.meta.themeLinks && elem.meta.data) {
@@ -2967,6 +2974,49 @@ function toggleFillThemeLink(checked) {
       pRectFill.disabled = false;
       const rectHexInput = pRectFill.nextElementSibling;
       if (rectHexInput) rectHexInput.disabled = false;
+    }
+  }
+  
+  obj.setCoords();
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+}
+
+function toggleStrokeThemeLink(checked) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj) return;
+
+  obj.strokeThemeLink = !!checked;
+  if (checked) {
+    const accentColor = getCurrentAccentColor();
+    obj.set('stroke', accentColor);
+    
+    // Update inputs
+    const pStroke = document.getElementById('propStroke');
+    const pStrokeHex = document.getElementById('propStrokeHex');
+    
+    if (pStroke) pStroke.value = hexToColorInput(accentColor);
+    if (pStrokeHex) pStrokeHex.value = accentColor;
+    
+    // Disable inputs
+    if (pStroke) pStroke.disabled = true;
+    if (pStrokeHex) {
+      pStrokeHex.disabled = true;
+    } else if (pStroke && pStroke.nextElementSibling) {
+      pStroke.nextElementSibling.disabled = true;
+    }
+  } else {
+    // Enable inputs
+    const pStroke = document.getElementById('propStroke');
+    const pStrokeHex = document.getElementById('propStrokeHex');
+    
+    if (pStroke) pStroke.disabled = false;
+    if (pStrokeHex) {
+      pStrokeHex.disabled = false;
+    } else if (pStroke && pStroke.nextElementSibling) {
+      pStroke.nextElementSibling.disabled = false;
     }
   }
   
@@ -3767,6 +3817,9 @@ function resetEditorForWorkspace(workspaceId, data) {
     addSlide();
   }
 
+  // 为当前幻灯片建立初始撤销快照
+  resetHistory();
+
   // 延迟生成全部缩略图
   setTimeout(() => {
     generateAllThumbnails();
@@ -3780,21 +3833,49 @@ function resetEditorForWorkspace(workspaceId, data) {
   versionCheckInterval = setInterval(checkDataVersion, 1000);
 }
 
+function hasUnsavedChanges() {
+  if (locallyModifiedSlideIds.size > 0) return true;
+  const current = JSON.parse(JSON.stringify(slidesData));
+  const original = JSON.parse(JSON.stringify(originalSlidesData));
+  delete current._version;
+  delete original._version;
+  return JSON.stringify(current) !== JSON.stringify(original);
+}
+
+async function syncWorkspaceVersionBeforeSwitch() {
+  try {
+    const resp = await fetch(apiUrl('/api/version'));
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const serverVersion = data._version || 0;
+
+    if (serverVersion > 0 && serverVersion !== dataVersion) {
+      const slidesResp = await fetch(apiUrl('/api/slides'));
+      if (!slidesResp.ok) return;
+      await mergeExternalChanges(await slidesResp.json(), { silent: true });
+    }
+  } catch (e) {
+    console.error('切换前同步版本失败:', e);
+  }
+}
+
 async function switchWorkspace(workspaceId, skipSave = false) {
   if (!workspaceId || workspaceId === currentWorkspaceId || isSwitchingWorkspace) {
     renderWorkspaceSelect();
     return;
   }
   isSwitchingWorkspace = true;
-  if (!skipSave) {
+  if (!skipSave && hasUnsavedChanges()) {
     try {
       if (selectedSlideId && canvas) {
         saveCurrentCanvasToSlide(selectedSlideId);
-        await saveNow();
       }
+      await syncWorkspaceVersionBeforeSwitch();
+      await saveNow();
     } catch (e) {
       if (!(await confirm(t('workspace.saveFailedSwitch')))) {
         renderWorkspaceSelect();
+        isSwitchingWorkspace = false;
         return;
       }
     }
@@ -4745,9 +4826,6 @@ async function loadSlideToCanvas(id) {
   // 恢复事件监听
   bindCanvasEvents();
 
-  // 重置撤销/重做栈
-  resetHistory();
-
   // 更新属性面板
   updatePropsPanel();
 }
@@ -4852,6 +4930,17 @@ function applyObjectLock(obj, locked) {
   });
 }
 
+// 旧版 3D 元素 html 迁移：非自定义 3D 元素若仍使用低分辨率 resize 逻辑，则重新生成代码
+function maybeRegenerate3DHtml(htmlBox) {
+  if (!htmlBox || !htmlBox.meta || htmlBox.meta.role !== '3d') return;
+  const data = htmlBox.meta.data || {};
+  if (data.geometry === 'custom') return;
+  if (!htmlBox.html || htmlBox.html.includes('getBoundingClientRect')) return;
+  const uid = htmlBox.meta.uid || _gen3DUid();
+  htmlBox.meta.uid = uid;
+  htmlBox.html = generateThreeJSCode(data, uid);
+}
+
 // ============ 序列化画布元素 ============
 // ============ 序列化画布元素 ============
 function serializeSingleElement(obj, i) {
@@ -4912,7 +5001,21 @@ function serializeSingleElement(obj, i) {
       strokeWidth: obj.strokeWidth || 0,
       rx: obj.rx || 0,
       ry: obj.ry || 0,
-      fillThemeLink: obj.fillThemeLink || undefined
+      fillThemeLink: obj.fillThemeLink || undefined,
+      strokeThemeLink: obj.strokeThemeLink || undefined
+    };
+  }
+
+  if (obj.type === 'polygon') {
+    return {
+      ...base,
+      fill: obj.fill || '#C5E803',
+      stroke: obj.stroke || '',
+      strokeWidth: obj.strokeWidth || 0,
+      fillThemeLink: obj.fillThemeLink || undefined,
+      strokeThemeLink: obj.strokeThemeLink || undefined,
+      points: obj.points ? obj.points.map(p => ({ x: p.x, y: p.y })) : [],
+      shapeType: obj.shapeType || undefined
     };
   }
 
@@ -4950,7 +5053,15 @@ function serializeSingleElement(obj, i) {
       if (child.type === 'rect' || child.type === 'circle' || child.type === 'triangle') {
         return {
           ...childBase, fill: child.fill || '#C5E803', stroke: child.stroke || '', strokeWidth: child.strokeWidth || 0,
-          rx: child.rx || 0, ry: child.ry || 0, fillThemeLink: child.fillThemeLink || undefined
+          rx: child.rx || 0, ry: child.ry || 0, fillThemeLink: child.fillThemeLink || undefined, strokeThemeLink: child.strokeThemeLink || undefined
+        };
+      }
+      if (child.type === 'polygon') {
+        return {
+          ...childBase, fill: child.fill || '#C5E803', stroke: child.stroke || '', strokeWidth: child.strokeWidth || 0,
+          fillThemeLink: child.fillThemeLink || undefined, strokeThemeLink: child.strokeThemeLink || undefined,
+          points: child.points ? child.points.map(p => ({ x: p.x, y: p.y })) : [],
+          shapeType: child.shapeType || undefined
         };
       }
       return childBase;
@@ -5058,6 +5169,7 @@ async function createFabricObject(elem) {
     htmlBox.css = elem.css || '';
     htmlBox.meta = elem.meta || { role: 'html' };
     htmlBox.excludeFromExport = false;
+    maybeRegenerate3DHtml(htmlBox);
     applyObjectLock(htmlBox, !!elem.locked);
     return htmlBox;
   }
@@ -5085,12 +5197,14 @@ async function createFabricObject(elem) {
       left: elem.x, top: elem.y,
       width: elem.width, height: elem.height,
       fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-      stroke: elem.stroke || '', strokeWidth: elem.strokeWidth || 0,
+      stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+      strokeWidth: elem.strokeWidth || 0,
       rx: elem.rx || 0, ry: elem.ry || 0,
       angle: elem.angle || 0, opacity: elem.opacity ?? 1
     });
     rect.id = elem.id;
     rect.fillThemeLink = !!elem.fillThemeLink;
+    rect.strokeThemeLink = !!elem.strokeThemeLink;
     applyObjectLock(rect, !!elem.locked);
     return rect;
   }
@@ -5101,11 +5215,13 @@ async function createFabricObject(elem) {
       scaleX: (elem.width || elem.height || 150) / Math.max(1, Math.min(elem.width || 150, elem.height || 150)),
       scaleY: (elem.height || elem.width || 150) / Math.max(1, Math.min(elem.width || 150, elem.height || 150)),
       fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-      stroke: elem.stroke || '', strokeWidth: elem.strokeWidth || 0,
+      stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+      strokeWidth: elem.strokeWidth || 0,
       angle: elem.angle || 0, opacity: elem.opacity ?? 1
     });
     circle.id = elem.id;
     circle.fillThemeLink = !!elem.fillThemeLink;
+    circle.strokeThemeLink = !!elem.strokeThemeLink;
     applyObjectLock(circle, !!elem.locked);
     return circle;
   }
@@ -5114,13 +5230,53 @@ async function createFabricObject(elem) {
       left: elem.x, top: elem.y,
       width: elem.width || 180, height: elem.height || 160,
       fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-      stroke: elem.stroke || '', strokeWidth: elem.strokeWidth || 0,
+      stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+      strokeWidth: elem.strokeWidth || 0,
       angle: elem.angle || 0, opacity: elem.opacity ?? 1
     });
     triangle.id = elem.id;
     triangle.fillThemeLink = !!elem.fillThemeLink;
+    triangle.strokeThemeLink = !!elem.strokeThemeLink;
     applyObjectLock(triangle, !!elem.locked);
     return triangle;
+  }
+  if (elem.type === 'polygon') {
+    let points = [];
+    if (elem.points && elem.points.length > 0) {
+      points = elem.points.map(p => ({ x: p.x, y: p.y }));
+    } else {
+      const w = elem.width || 180;
+      const h = elem.height || 180;
+      if (elem.shapeType === 'diamond') {
+        points = _diamondPoints(w, h);
+      } else if (elem.shapeType === 'star') {
+        points = _starPoints(w, h);
+      } else if (elem.shapeType === 'arrow') {
+        points = _arrowPoints(w, h);
+      } else {
+        points = _diamondPoints(w, h);
+      }
+    }
+    const poly = new fabric.Polygon(points, {
+      left: elem.x, top: elem.y,
+      fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
+      stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+      strokeWidth: elem.strokeWidth || 0,
+      angle: elem.angle || 0, opacity: elem.opacity ?? 1,
+      objectCaching: false
+    });
+    if (elem.width && poly.width) {
+      poly.scaleX = elem.width / poly.width;
+    }
+    if (elem.height && poly.height) {
+      poly.scaleY = elem.height / poly.height;
+    }
+    poly.id = elem.id;
+    poly.fillThemeLink = !!elem.fillThemeLink;
+    poly.strokeThemeLink = !!elem.strokeThemeLink;
+    poly.shapeType = elem.shapeType;
+    applyObjectLock(poly, !!elem.locked);
+    return poly;
   }
   return null;
 }
@@ -5227,6 +5383,7 @@ async function loadElementsToCanvas(targetCanvas, elements) {
         htmlBox.css = elem.css || '';
         htmlBox.meta = elem.meta || { role: 'html' };
         htmlBox.excludeFromExport = false;
+        maybeRegenerate3DHtml(htmlBox);
         if (htmlBox.meta && htmlBox.meta.role === '3d') {
           htmlBox.centeredScaling = true;
         }
@@ -5260,7 +5417,7 @@ async function loadElementsToCanvas(targetCanvas, elements) {
           width: elem.width,
           height: elem.height,
           fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-          stroke: elem.stroke || '',
+          stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
           strokeWidth: elem.strokeWidth || 0,
           rx: elem.rx || 0,
           ry: elem.ry || 0,
@@ -5269,6 +5426,7 @@ async function loadElementsToCanvas(targetCanvas, elements) {
         });
         rect.id = elem.id;
         rect.fillThemeLink = !!elem.fillThemeLink;
+        rect.strokeThemeLink = !!elem.strokeThemeLink;
         applyObjectLock(rect, !!elem.locked);
         targetCanvas.add(rect);
       } else if (elem.type === 'circle') {
@@ -5279,13 +5437,14 @@ async function loadElementsToCanvas(targetCanvas, elements) {
           scaleX: (elem.width || elem.height || 150) / Math.max(1, Math.min(elem.width || 150, elem.height || 150)),
           scaleY: (elem.height || elem.width || 150) / Math.max(1, Math.min(elem.width || 150, elem.height || 150)),
           fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-          stroke: elem.stroke || '',
+          stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
           strokeWidth: elem.strokeWidth || 0,
           angle: elem.angle || 0,
           opacity: elem.opacity ?? 1
         });
         circle.id = elem.id;
         circle.fillThemeLink = !!elem.fillThemeLink;
+        circle.strokeThemeLink = !!elem.strokeThemeLink;
         applyObjectLock(circle, !!elem.locked);
         targetCanvas.add(circle);
       } else if (elem.type === 'triangle') {
@@ -5295,15 +5454,55 @@ async function loadElementsToCanvas(targetCanvas, elements) {
           width: elem.width || 180,
           height: elem.height || 160,
           fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
-          stroke: elem.stroke || '',
+          stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
           strokeWidth: elem.strokeWidth || 0,
           angle: elem.angle || 0,
           opacity: elem.opacity ?? 1
         });
         triangle.id = elem.id;
         triangle.fillThemeLink = !!elem.fillThemeLink;
+        triangle.strokeThemeLink = !!elem.strokeThemeLink;
         applyObjectLock(triangle, !!elem.locked);
         targetCanvas.add(triangle);
+      } else if (elem.type === 'polygon') {
+        let points = [];
+        if (elem.points && elem.points.length > 0) {
+          points = elem.points.map(p => ({ x: p.x, y: p.y }));
+        } else {
+          const w = elem.width || 180;
+          const h = elem.height || 180;
+          if (elem.shapeType === 'diamond') {
+            points = _diamondPoints(w, h);
+          } else if (elem.shapeType === 'star') {
+            points = _starPoints(w, h);
+          } else if (elem.shapeType === 'arrow') {
+            points = _arrowPoints(w, h);
+          } else {
+            points = _diamondPoints(w, h);
+          }
+        }
+        const poly = new fabric.Polygon(points, {
+          left: elem.x,
+          top: elem.y,
+          fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
+          stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+          strokeWidth: elem.strokeWidth || 0,
+          angle: elem.angle || 0,
+          opacity: elem.opacity ?? 1,
+          objectCaching: false
+        });
+        if (elem.width && poly.width) {
+          poly.scaleX = elem.width / poly.width;
+        }
+        if (elem.height && poly.height) {
+          poly.scaleY = elem.height / poly.height;
+        }
+        poly.id = elem.id;
+        poly.fillThemeLink = !!elem.fillThemeLink;
+        poly.strokeThemeLink = !!elem.strokeThemeLink;
+        poly.shapeType = elem.shapeType;
+        applyObjectLock(poly, !!elem.locked);
+        targetCanvas.add(poly);
       } else if (elem.type === 'group' && elem.objects && elem.objects.length > 0) {
         const childObjects = [];
         for (const child of elem.objects) {
@@ -5535,11 +5734,58 @@ function addTriangleElement() {
   scheduleAutoSave();
 }
 
+// 添加方框（空心矩形）
+function addHollowRectElement() {
+  if (!canvas) return;
+  const rect = new fabric.Rect({
+    left: CANVAS_BASE_WIDTH / 2 - 100,
+    top: CANVAS_BASE_HEIGHT / 2 - 75,
+    width: 200,
+    height: 150,
+    fill: 'transparent',
+    stroke: getCurrentAccentColor(),
+    strokeWidth: 4,
+    rx: 0,
+    ry: 0
+  });
+  rect.id = 'elem-' + Date.now();
+  rect.fillThemeLink = false;
+  rect.strokeThemeLink = true;
+  canvas.add(rect);
+  canvas.setActiveObject(rect);
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+}
+
+// 添加圆环（空心圆形）
+function addHollowCircleElement() {
+  if (!canvas) return;
+  const circle = new fabric.Circle({
+    left: CANVAS_BASE_WIDTH / 2 - 75,
+    top: CANVAS_BASE_HEIGHT / 2 - 75,
+    radius: 75,
+    fill: 'transparent',
+    stroke: getCurrentAccentColor(),
+    strokeWidth: 4
+  });
+  circle.id = 'elem-' + Date.now();
+  circle.fillThemeLink = false;
+  circle.strokeThemeLink = true;
+  canvas.add(circle);
+  canvas.setActiveObject(circle);
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+}
+
 // 形状预设配置，便于后续扩展更多形状
 const SHAPE_PRESETS = [
   { name: 'rect', labelKey: 'shape.rect', icon: 'rectangle' },
   { name: 'circle', labelKey: 'shape.circle', icon: 'circle' },
-  { name: 'triangle', labelKey: 'shape.triangle', icon: 'change_history' }
+  { name: 'triangle', labelKey: 'shape.triangle', icon: 'change_history' },
+  { name: 'hollow-rect', labelKey: 'shape.hollowRect', icon: 'crop_square' },
+  { name: 'hollow-circle', labelKey: 'shape.hollowCircle', icon: 'donut_large' }
 ];
 
 // 统一插入形状入口
@@ -5554,6 +5800,12 @@ function addShapeElement(type) {
       break;
     case 'triangle':
       addTriangleElement();
+      break;
+    case 'hollow-rect':
+      addHollowRectElement();
+      break;
+    case 'hollow-circle':
+      addHollowCircleElement();
       break;
     default:
       console.warn('Unknown shape type:', type);
@@ -5759,7 +6011,7 @@ function setupKeyboardShortcuts() {
     // Ctrl+S 保存当前数据，并阻止浏览器打开"保存网页"对话框
     if (ctrlOrCmd && key === 's') {
       e.preventDefault();
-      saveNow();
+      saveNow().catch(() => {});
       return;
     }
 
@@ -5955,6 +6207,7 @@ function pasteClipboard() {
 function createHistorySnapshot() {
   const slide = slidesData.slides.find(s => s.id === selectedSlideId);
   return {
+    slideId: selectedSlideId,
     backgroundColor: slide ? slide.backgroundColor : '#ffffff',
     elements: canvas ? serializeElements(canvas) : []
   };
@@ -6014,6 +6267,10 @@ async function undoAction() {
   redoStack.push(cloneHistoryState(undoStack.pop()));
   const prevState = undoStack[undoStack.length - 1];
 
+  if (prevState && prevState.slideId && prevState.slideId !== selectedSlideId) {
+    selectSlide(prevState.slideId);
+  }
+
   await restoreState(prevState);
   updateUndoRedoButtons();
   scheduleAutoSave();
@@ -6024,6 +6281,10 @@ async function redoAction() {
 
   const nextState = redoStack.pop();
   undoStack.push(cloneHistoryState(nextState));
+
+  if (nextState && nextState.slideId && nextState.slideId !== selectedSlideId) {
+    selectSlide(nextState.slideId);
+  }
 
   await restoreState(nextState);
   updateUndoRedoButtons();
@@ -6359,7 +6620,7 @@ function renderPropsForm(obj) {
   const isText = obj.type === 'i-text' || obj.type === 'textbox';
   const isImage = obj.type === 'image';
   const isRect = obj.type === 'rect';
-  const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle';
+  const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle' || obj.type === 'polygon';
   const isHtml = obj.elementType === 'html';
   const is3D = isHtml && obj.meta && obj.meta.role === '3d';
   const opacity = obj.opacity ?? 1;
@@ -6481,6 +6742,7 @@ function getTypeLabel(type, obj) {
     'rect': '矩形',
     'circle': '圆形',
     'triangle': '三角形',
+    'polygon': '多边形',
     'path': '路径',
     'group': '组合'
   };
@@ -6849,9 +7111,13 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.strokeColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" onchange="applyProp('stroke', this.value)">
-            <input type="text" class="form-control color-hex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value);">
+            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" onchange="applyProp('stroke', this.value)" ${obj.strokeThemeLink ? 'disabled' : ''}>
+            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value);" ${obj.strokeThemeLink ? 'disabled' : ''}>
           </div>
+          <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
+            <input type="checkbox" id="propStrokeThemeLink" ${obj.strokeThemeLink ? 'checked' : ''} onchange="toggleStrokeThemeLink(this.checked)">
+            ${t('props.label.useThemeColor')}
+          </label>
         </div>
         <div class="form-group">
           <label>${t('props.label.strokeWidth')}</label>
@@ -6894,6 +7160,11 @@ function applyProp(propName, value) {
     if (propName === 'fill') {
       obj.fillThemeLink = false;
       const chk = document.getElementById('propFillThemeLink');
+      if (chk) chk.checked = false;
+    }
+    if (propName === 'stroke') {
+      obj.strokeThemeLink = false;
+      const chk = document.getElementById('propStrokeThemeLink');
       if (chk) chk.checked = false;
     }
     obj.set(propName, value);
@@ -7283,11 +7554,31 @@ async function saveNow() {
       originalSlidesData = JSON.parse(JSON.stringify(slidesData));
       locallyModifiedSlideIds.clear();
       updateSaveStatus('saved');
+    } else if (resp.status === 409) {
+      // 乐观锁冲突：解析服务端最新数据并尝试合并，然后向上抛错让调用方处理
+      updateSaveStatus('error');
+      let conflictData = null;
+      let conflictVersion = 0;
+      try {
+        const body = await resp.json();
+        conflictData = body.data || null;
+        conflictVersion = body._version || 0;
+      } catch (parseErr) {
+        console.error('解析 409 响应失败:', parseErr);
+      }
+      if (conflictData && conflictVersion > 0) {
+        dataVersion = conflictVersion;
+        slidesData._version = conflictVersion;
+        await mergeExternalChanges(conflictData, { silent: true });
+      }
+      throw new Error('version_conflict');
     } else {
       updateSaveStatus('error');
+      throw new Error(`save_failed:${resp.status}`);
     }
   } catch (e) {
     updateSaveStatus('error');
+    throw e;
   } finally {
     isSaving = false;
   }
@@ -7920,6 +8211,281 @@ function updateTopbarNotice() {
 setTimeout(updateHistoryButtonBadge, 100);
 
 // ============ 外部修改检测 ============
+async function mergeExternalChanges(serverSlidesData, options = {}) {
+  const { silent = false } = options;
+
+  // 2. 准备进行合并比较，先保存当前画布内容到本地 slidesData
+  if (selectedSlideId && canvas) {
+    saveCurrentCanvasToSlide(selectedSlideId);
+  }
+
+  const serverSlides = serverSlidesData.slides || [];
+  const localSlides = slidesData.slides || [];
+  const originalSlides = originalSlidesData.slides || [];
+
+  const serverMap = new Map(serverSlides.map(s => [String(s.id), s]));
+  const localMap = new Map(localSlides.map(s => [String(s.id), s]));
+  const originalMap = new Map(originalSlides.map(s => [String(s.id), s]));
+
+  const conflictedSlideIds = new Set();
+  const newModifiedExternalSlideIds = new Set();
+  let hasUpdates = false;
+
+  // 检查被服务器更新或新增的幻灯片
+  for (const serverSlide of serverSlides) {
+    const id = String(serverSlide.id);
+    const localSlide = localMap.get(id);
+    const originalSlide = originalMap.get(id);
+
+    const localModified = locallyModifiedSlideIds.has(id);
+    const serverModified = !originalSlide || JSON.stringify(serverSlide) !== JSON.stringify(originalSlide);
+
+    if (localModified && serverModified && JSON.stringify(localSlide) !== JSON.stringify(serverSlide)) {
+      conflictedSlideIds.add(id);
+    } else if (serverModified && !localModified) {
+      newModifiedExternalSlideIds.add(id);
+      hasUpdates = true;
+    }
+  }
+
+  // 检查在服务器上被删除的幻灯片
+  for (const originalSlide of originalSlides) {
+    const id = String(originalSlide.id);
+    if (!serverMap.has(id)) {
+      const localModified = locallyModifiedSlideIds.has(id);
+      if (localModified) {
+        conflictedSlideIds.add(id);
+      } else {
+        // 没有本地修改，直接删除
+        localMap.delete(id);
+        delete slideThumbnails[id];
+        hasUpdates = true;
+      }
+    }
+  }
+
+  // 处理冲突
+  for (const conflictId of conflictedSlideIds) {
+    const serverSlide = serverMap.get(conflictId);
+    const localSlide = localMap.get(conflictId);
+    const title = (localSlide || serverSlide)?.content?.title || '未命名';
+    
+    if (await confirm(t('confirm.externalConflict', { title }))) {
+      if (serverSlide) {
+        localMap.set(conflictId, JSON.parse(JSON.stringify(serverSlide)));
+        newModifiedExternalSlideIds.add(conflictId);
+      } else {
+        localMap.delete(conflictId);
+      }
+      hasUpdates = true;
+    }
+  }
+
+  // 处理非冲突的更新
+  for (const serverSlide of serverSlides) {
+    const id = String(serverSlide.id);
+    if (!conflictedSlideIds.has(id) && newModifiedExternalSlideIds.has(id)) {
+      localMap.set(id, JSON.parse(JSON.stringify(serverSlide)));
+    }
+  }
+
+  // 组装合并后的幻灯片列表。如果本地有顺序修改，按本地顺序；否则按服务器顺序。
+  const localOrderChanged = JSON.stringify(localSlides.map(s => String(s.id))) !== JSON.stringify(originalSlides.map(s => String(s.id)));
+  const finalSlides = [];
+
+  if (!localOrderChanged) {
+    // 按服务器顺序
+    for (const serverSlide of serverSlides) {
+      const id = String(serverSlide.id);
+      if (localMap.has(id)) {
+        finalSlides.push(localMap.get(id));
+      }
+    }
+    // 如果有本地新增且服务器还没收到的，追加在后面
+    for (const localSlide of localSlides) {
+      const id = String(localSlide.id);
+      if (!serverMap.has(id) && !originalMap.has(id)) {
+        finalSlides.push(localSlide);
+      }
+    }
+  } else {
+    // 按本地顺序
+    for (const localSlide of localSlides) {
+      const id = String(localSlide.id);
+      if (localMap.has(id)) {
+        finalSlides.push(localMap.get(id));
+      }
+    }
+    // 如果有服务器新增的，追加在后面
+    for (const serverSlide of serverSlides) {
+      const id = String(serverSlide.id);
+      const hasInLocal = localSlides.some(s => String(s.id) === id);
+      if (!hasInLocal && !originalMap.has(id)) {
+        finalSlides.push(JSON.parse(JSON.stringify(serverSlide)));
+      }
+    }
+  }
+
+  // 构造当次修改历史消息
+  const isEn = (getLanguage() === 'en');
+  const modifiedSlideNames = [];
+  newModifiedExternalSlideIds.forEach(id => {
+    const slide = serverMap.get(id);
+    if (slide) {
+      const index = serverSlides.findIndex(s => String(s.id) === id);
+      const pageNum = index >= 0 ? (index + 1) : '';
+      const title = slide.content?.title || (isEn ? 'Untitled' : '未命名');
+      modifiedSlideNames.push(isEn ? `Page ${pageNum} ("${title}")` : `第 ${pageNum} 页 ("${title}")`);
+    }
+  });
+
+  const addedSlideNames = [];
+  for (const serverSlide of serverSlides) {
+    const id = String(serverSlide.id);
+    if (!originalMap.has(id)) {
+      const index = serverSlides.findIndex(s => String(s.id) === id);
+      const pageNum = index >= 0 ? (index + 1) : '';
+      const title = serverSlide.content?.title || (isEn ? 'Untitled' : '未命名');
+      addedSlideNames.push(isEn ? `Page ${pageNum} ("${title}")` : `第 ${pageNum} 页 ("${title}")`);
+    }
+  }
+
+  const deletedSlideNames = [];
+  for (const originalSlide of originalSlides) {
+    const id = String(originalSlide.id);
+    if (!serverMap.has(id)) {
+      const title = originalSlide.content?.title || (isEn ? 'Untitled' : '未命名');
+      deletedSlideNames.push(`"${title}"`);
+    }
+  }
+
+  let noticeParts = [];
+  if (isEn) {
+    if (modifiedSlideNames.length > 0) {
+      noticeParts.push(`Modified ${modifiedSlideNames.join(', ')}`);
+    }
+    if (addedSlideNames.length > 0) {
+      noticeParts.push(`Added ${addedSlideNames.join(', ')}`);
+    }
+    if (deletedSlideNames.length > 0) {
+      noticeParts.push(`Deleted ${deletedSlideNames.join(', ')}`);
+    }
+  } else {
+    if (modifiedSlideNames.length > 0) {
+      noticeParts.push(`修改 ${modifiedSlideNames.join('、')}`);
+    }
+    if (addedSlideNames.length > 0) {
+      noticeParts.push(`新增 ${addedSlideNames.join('、')}`);
+    }
+    if (deletedSlideNames.length > 0) {
+      noticeParts.push(`删除 ${deletedSlideNames.join('、')}`);
+    }
+  }
+
+  // 收集本次受影响的幻灯片 ID
+  const affectedSlideIds = new Set();
+  newModifiedExternalSlideIds.forEach(id => affectedSlideIds.add(String(id)));
+  for (const serverSlide of serverSlides) {
+    const id = String(serverSlide.id);
+    if (!originalMap.has(id)) {
+      affectedSlideIds.add(id);
+    }
+  }
+  for (const originalSlide of originalSlides) {
+    const id = String(originalSlide.id);
+    if (!serverMap.has(id)) {
+      affectedSlideIds.add(id);
+    }
+  }
+
+  const preSlides = JSON.parse(JSON.stringify(slidesData.slides));
+  const postSlides = JSON.parse(JSON.stringify(finalSlides));
+
+  if (!silent && noticeParts.length > 0) {
+    const prefix = isEn ? 'Agent API: ' : 'Agent API: ';
+    const sep = isEn ? '; ' : '；';
+    addNotificationToHistory(`${prefix}${noticeParts.join(sep)}`, preSlides, postSlides, Array.from(affectedSlideIds));
+  }
+
+  // 更新全局 slidesData
+  slidesData.slides = finalSlides;
+  const serverVersion = serverSlidesData._version || 0;
+  dataVersion = serverVersion;
+  slidesData._version = serverVersion;
+  originalSlidesData = JSON.parse(JSON.stringify(slidesData));
+
+  // 把外部修改的 slideId 记录下来
+  newModifiedExternalSlideIds.forEach(id => {
+    if (id !== String(selectedSlideId)) {
+      externalModifiedSlideIds.add(id);
+    }
+  });
+
+  // 清空受影响/外部修改幻灯片的缩略图缓存，以强制重新生成
+  newModifiedExternalSlideIds.forEach(id => {
+    delete slideThumbnails[id];
+  });
+
+  // 重新渲染幻灯片列表
+  renderSlideList();
+
+  // 自动重新生成所有缺失的缩略图
+  generateAllThumbnails();
+
+  // 更新提示消息
+  if (!silent) {
+    updateTopbarNotice();
+  }
+
+  // 如果当前选中的幻灯片被修改，且版本不一致，自动重新加载画布以呈现最新修改
+  if (newModifiedExternalSlideIds.has(String(selectedSlideId))) {
+    // 1. 将当前状态推入画布的撤销历史栈，作为撤回的前置状态
+    pushHistory();
+
+    // 2. 将服务器上的最新元素和布局渲染到画布，在此过程中暂不重置撤销历史栈
+    const slide = serverMap.get(String(selectedSlideId));
+    if (slide && canvas) {
+      const frame = document.getElementById('canvasFrame');
+      if (frame) {
+        frame.classList.add('sync-anim-fade-out');
+        frame.classList.remove('sync-anim-fade-in');
+      }
+      
+      setTimeout(async () => {
+        isRestoringHistory = true;
+        try {
+          const layer = ensureHtmlPreviewLayer();
+          if (layer) layer.innerHTML = '';
+          canvas.clear();
+          setCanvasBackground(getSlideBgColor(slide));
+          if (slide.canvas_elements && slide.canvas_elements.length > 0) {
+            await loadElementsToCanvas(canvas, slide.canvas_elements);
+          }
+          canvas.requestRenderAll();
+          syncHtmlPreviewLayer();
+        } finally {
+          isRestoringHistory = false;
+        }
+        setEditorBgStyle(slide.layout || 'body', slide.theme || 'light');
+        updatePropsPanel();
+
+        // 3. 将新的 Agent 修改状态推入画布撤销历史栈，允许用户通过 Ctrl+Z 撤回
+        pushHistory();
+        
+        if (frame) {
+          frame.classList.remove('sync-anim-fade-out');
+          frame.classList.add('sync-anim-fade-in');
+          setTimeout(() => {
+            frame.classList.remove('sync-anim-fade-in');
+          }, 600);
+        }
+      }, 150);
+    }
+  }
+
+  return { hasUpdates, newModifiedExternalSlideIds, conflictedSlideIds, finalSlides };
+}
+
 async function checkDataVersion() {
   if (isSaving) return;
   try {
@@ -7934,272 +8500,7 @@ async function checkDataVersion() {
       const slidesResp = await fetch(apiUrl('/api/slides'));
       if (!slidesResp.ok) return;
       const serverSlidesData = await slidesResp.json();
-      
-      // 2. 准备进行合并比较，先保存当前画布内容到本地 slidesData
-      if (selectedSlideId && canvas) {
-        saveCurrentCanvasToSlide(selectedSlideId);
-      }
-
-      const serverSlides = serverSlidesData.slides || [];
-      const localSlides = slidesData.slides || [];
-      const originalSlides = originalSlidesData.slides || [];
-
-      const serverMap = new Map(serverSlides.map(s => [String(s.id), s]));
-      const localMap = new Map(localSlides.map(s => [String(s.id), s]));
-      const originalMap = new Map(originalSlides.map(s => [String(s.id), s]));
-
-      const conflictedSlideIds = new Set();
-      const newModifiedExternalSlideIds = new Set();
-      let hasUpdates = false;
-
-      // 检查被服务器更新或新增的幻灯片
-      for (const serverSlide of serverSlides) {
-        const id = String(serverSlide.id);
-        const localSlide = localMap.get(id);
-        const originalSlide = originalMap.get(id);
-
-        const localModified = locallyModifiedSlideIds.has(id);
-        const serverModified = !originalSlide || JSON.stringify(serverSlide) !== JSON.stringify(originalSlide);
-
-        if (localModified && serverModified && JSON.stringify(localSlide) !== JSON.stringify(serverSlide)) {
-          conflictedSlideIds.add(id);
-        } else if (serverModified && !localModified) {
-          newModifiedExternalSlideIds.add(id);
-          hasUpdates = true;
-        }
-      }
-
-      // 检查在服务器上被删除的幻灯片
-      for (const originalSlide of originalSlides) {
-        const id = String(originalSlide.id);
-        if (!serverMap.has(id)) {
-          const localModified = locallyModifiedSlideIds.has(id);
-          if (localModified) {
-            conflictedSlideIds.add(id);
-          } else {
-            // 没有本地修改，直接删除
-            localMap.delete(id);
-            delete slideThumbnails[id];
-            hasUpdates = true;
-          }
-        }
-      }
-
-      // 处理冲突
-      for (const conflictId of conflictedSlideIds) {
-        const serverSlide = serverMap.get(conflictId);
-        const localSlide = localMap.get(conflictId);
-        const title = (localSlide || serverSlide)?.content?.title || '未命名';
-        
-        if (await confirm(t('confirm.externalConflict', { title }))) {
-          if (serverSlide) {
-            localMap.set(conflictId, JSON.parse(JSON.stringify(serverSlide)));
-            newModifiedExternalSlideIds.add(conflictId);
-          } else {
-            localMap.delete(conflictId);
-          }
-          hasUpdates = true;
-        }
-      }
-
-      // 处理非冲突的更新
-      for (const serverSlide of serverSlides) {
-        const id = String(serverSlide.id);
-        if (!conflictedSlideIds.has(id) && newModifiedExternalSlideIds.has(id)) {
-          localMap.set(id, JSON.parse(JSON.stringify(serverSlide)));
-        }
-      }
-
-      // 组装合并后的幻灯片列表。如果本地有顺序修改，按本地顺序；否则按服务器顺序。
-      const localOrderChanged = JSON.stringify(localSlides.map(s => String(s.id))) !== JSON.stringify(originalSlides.map(s => String(s.id)));
-      const finalSlides = [];
-
-      if (!localOrderChanged) {
-        // 按服务器顺序
-        for (const serverSlide of serverSlides) {
-          const id = String(serverSlide.id);
-          if (localMap.has(id)) {
-            finalSlides.push(localMap.get(id));
-          }
-        }
-        // 如果有本地新增且服务器还没收到的，追加在后面
-        for (const localSlide of localSlides) {
-          const id = String(localSlide.id);
-          if (!serverMap.has(id) && !originalMap.has(id)) {
-            finalSlides.push(localSlide);
-          }
-        }
-      } else {
-        // 按本地顺序
-        for (const localSlide of localSlides) {
-          const id = String(localSlide.id);
-          if (localMap.has(id)) {
-            finalSlides.push(localMap.get(id));
-          }
-        }
-        // 如果有服务器新增的，追加在后面
-        for (const serverSlide of serverSlides) {
-          const id = String(serverSlide.id);
-          const hasInLocal = localSlides.some(s => String(s.id) === id);
-          if (!hasInLocal && !originalMap.has(id)) {
-            finalSlides.push(JSON.parse(JSON.stringify(serverSlide)));
-          }
-        }
-      }
-
-      // 构造当次修改历史消息
-      const isEn = (getLanguage() === 'en');
-      const modifiedSlideNames = [];
-      newModifiedExternalSlideIds.forEach(id => {
-        const slide = serverMap.get(id);
-        if (slide) {
-          const index = serverSlides.findIndex(s => String(s.id) === id);
-          const pageNum = index >= 0 ? (index + 1) : '';
-          const title = slide.content?.title || (isEn ? 'Untitled' : '未命名');
-          modifiedSlideNames.push(isEn ? `Page ${pageNum} ("${title}")` : `第 ${pageNum} 页 ("${title}")`);
-        }
-      });
-
-      const addedSlideNames = [];
-      for (const serverSlide of serverSlides) {
-        const id = String(serverSlide.id);
-        if (!originalMap.has(id)) {
-          const index = serverSlides.findIndex(s => String(s.id) === id);
-          const pageNum = index >= 0 ? (index + 1) : '';
-          const title = serverSlide.content?.title || (isEn ? 'Untitled' : '未命名');
-          addedSlideNames.push(isEn ? `Page ${pageNum} ("${title}")` : `第 ${pageNum} 页 ("${title}")`);
-        }
-      }
-
-      const deletedSlideNames = [];
-      for (const originalSlide of originalSlides) {
-        const id = String(originalSlide.id);
-        if (!serverMap.has(id)) {
-          const title = originalSlide.content?.title || (isEn ? 'Untitled' : '未命名');
-          deletedSlideNames.push(`"${title}"`);
-        }
-      }
-
-      let noticeParts = [];
-      if (isEn) {
-        if (modifiedSlideNames.length > 0) {
-          noticeParts.push(`Modified ${modifiedSlideNames.join(', ')}`);
-        }
-        if (addedSlideNames.length > 0) {
-          noticeParts.push(`Added ${addedSlideNames.join(', ')}`);
-        }
-        if (deletedSlideNames.length > 0) {
-          noticeParts.push(`Deleted ${deletedSlideNames.join(', ')}`);
-        }
-      } else {
-        if (modifiedSlideNames.length > 0) {
-          noticeParts.push(`修改 ${modifiedSlideNames.join('、')}`);
-        }
-        if (addedSlideNames.length > 0) {
-          noticeParts.push(`新增 ${addedSlideNames.join('、')}`);
-        }
-        if (deletedSlideNames.length > 0) {
-          noticeParts.push(`删除 ${deletedSlideNames.join('、')}`);
-        }
-      }
-
-      // 收集本次受影响的幻灯片 ID
-      const affectedSlideIds = new Set();
-      newModifiedExternalSlideIds.forEach(id => affectedSlideIds.add(String(id)));
-      for (const serverSlide of serverSlides) {
-        const id = String(serverSlide.id);
-        if (!originalMap.has(id)) {
-          affectedSlideIds.add(id);
-        }
-      }
-      for (const originalSlide of originalSlides) {
-        const id = String(originalSlide.id);
-        if (!serverMap.has(id)) {
-          affectedSlideIds.add(id);
-        }
-      }
-
-      const preSlides = JSON.parse(JSON.stringify(slidesData.slides));
-      const postSlides = JSON.parse(JSON.stringify(finalSlides));
-
-      if (noticeParts.length > 0) {
-        const prefix = isEn ? 'Agent API: ' : 'Agent API: ';
-        const sep = isEn ? '; ' : '；';
-        addNotificationToHistory(`${prefix}${noticeParts.join(sep)}`, preSlides, postSlides, Array.from(affectedSlideIds));
-      }
-
-      // 更新全局 slidesData
-      slidesData.slides = finalSlides;
-      dataVersion = serverVersion;
-      slidesData._version = serverVersion;
-      originalSlidesData = JSON.parse(JSON.stringify(slidesData));
-
-      // 把外部修改的 slideId 记录下来
-      newModifiedExternalSlideIds.forEach(id => {
-        if (id !== String(selectedSlideId)) {
-          externalModifiedSlideIds.add(id);
-        }
-      });
-
-      // 清空受影响/外部修改幻灯片的缩略图缓存，以强制重新生成
-      newModifiedExternalSlideIds.forEach(id => {
-        delete slideThumbnails[id];
-      });
-
-      // 重新渲染幻灯片列表
-      renderSlideList();
-
-      // 自动重新生成所有缺失的缩略图
-      generateAllThumbnails();
-
-      // 更新提示消息
-      updateTopbarNotice();
-
-      // 如果当前选中的幻灯片被修改，且版本不一致，自动重新加载画布以呈现最新修改
-      if (newModifiedExternalSlideIds.has(String(selectedSlideId))) {
-        // 1. 将当前状态推入画布的撤销历史栈，作为撤回的前置状态
-        pushHistory();
-
-        // 2. 将服务器上的最新元素和布局渲染到画布，在此过程中暂不重置撤销历史栈
-        const slide = serverMap.get(String(selectedSlideId));
-        if (slide && canvas) {
-          const frame = document.getElementById('canvasFrame');
-          if (frame) {
-            frame.classList.add('sync-anim-fade-out');
-            frame.classList.remove('sync-anim-fade-in');
-          }
-          
-          setTimeout(async () => {
-            isRestoringHistory = true;
-            try {
-              const layer = ensureHtmlPreviewLayer();
-              if (layer) layer.innerHTML = '';
-              canvas.clear();
-              setCanvasBackground(getSlideBgColor(slide));
-              if (slide.canvas_elements && slide.canvas_elements.length > 0) {
-                await loadElementsToCanvas(canvas, slide.canvas_elements);
-              }
-              canvas.requestRenderAll();
-              syncHtmlPreviewLayer();
-            } finally {
-              isRestoringHistory = false;
-            }
-            setEditorBgStyle(slide.layout || 'body', slide.theme || 'light');
-            updatePropsPanel();
-
-            // 3. 将新的 Agent 修改状态推入画布撤销历史栈，允许用户通过 Ctrl+Z 撤回
-            pushHistory();
-            
-            if (frame) {
-              frame.classList.remove('sync-anim-fade-out');
-              frame.classList.add('sync-anim-fade-in');
-              setTimeout(() => {
-                frame.classList.remove('sync-anim-fade-in');
-              }, 600);
-            }
-          }, 150);
-        }
-      }
+      await mergeExternalChanges(serverSlidesData, { silent: false });
     }
   } catch (e) {
     console.error('检查数据版本或自动合并失败:', e);
@@ -10305,8 +10606,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,4);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 ${bgClear}
 scene.add(new THREE.AmbientLight(0xffffff,0.5));
 var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
@@ -10323,8 +10624,13 @@ renderer.render(scene,camera);
 }
 animate();
 function onResize(){
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
 host.__threeCleanup=function(){
@@ -10356,8 +10662,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,5);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 ${bgClear}
 var count=600;
 var positions=new Float32Array(count*3);
@@ -10375,8 +10681,13 @@ renderer.render(scene,camera);
 }
 animate();
 function onResize(){
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
 host.__threeCleanup=function(){
@@ -10410,8 +10721,8 @@ var camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);
 camera.position.set(0,4.5,7.5);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 ${bgClear}
 var count=2000;
 var positions=new Float32Array(count*3);
@@ -10449,8 +10760,13 @@ renderer.render(scene,camera);
 }
 animate();
 function onResize(){
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
 host.__threeCleanup=function(){
@@ -10482,8 +10798,8 @@ var camera=new THREE.PerspectiveCamera(45,w/h,0.1,1000);
 camera.position.set(0,5,10);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 ${bgClear}
 var SEPARATION=0.3, AMOUNTX=30, AMOUNTY=30;
 var numParticles=AMOUNTX*AMOUNTY;
@@ -10521,8 +10837,13 @@ renderer.render(scene,camera);
 }
 animate();
 function onResize(){
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
 host.__threeCleanup=function(){
@@ -10553,8 +10874,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,9);
 var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:${bgAlpha}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 ${bgClear}
 var group=new THREE.Group();
 scene.add(group);
@@ -10624,8 +10945,13 @@ renderer.render(scene,camera);
 }
 animate();
 function onResize(){
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
 host.__threeCleanup=function(){

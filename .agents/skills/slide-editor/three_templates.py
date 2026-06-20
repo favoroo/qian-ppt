@@ -164,8 +164,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,4);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 {bg_clear}
 scene.add(new THREE.AmbientLight(0xffffff,0.5));
 var d1=new THREE.DirectionalLight(0xffffff,0.8);d1.position.set(2,3,4);scene.add(d1);
@@ -182,8 +182,13 @@ renderer.render(scene,camera);
 }}
 animate();
 function onResize(){{
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
 host.__threeCleanup=function(){{
@@ -218,8 +223,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,5);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 {bg_clear}
 var count=600;
 var positions=new Float32Array(count*3);
@@ -237,8 +242,13 @@ renderer.render(scene,camera);
 }}
 animate();
 function onResize(){{
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
 host.__threeCleanup=function(){{
@@ -275,8 +285,8 @@ var camera=new THREE.PerspectiveCamera(60,w/h,0.1,1000);
 camera.position.set(0,4.5,7.5);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 {bg_clear}
 var count=2000;
 var positions=new Float32Array(count*3);
@@ -314,8 +324,13 @@ renderer.render(scene,camera);
 }}
 animate();
 function onResize(){{
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
 host.__threeCleanup=function(){{
@@ -349,8 +364,8 @@ var camera=new THREE.PerspectiveCamera(45,w/h,0.1,1000);
 camera.position.set(0,5,10);
 camera.lookAt(0,0,0);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 {bg_clear}
 var SEPARATION=0.3, AMOUNTX=30, AMOUNTY=30;
 var numParticles=AMOUNTX*AMOUNTY;
@@ -388,8 +403,13 @@ renderer.render(scene,camera);
 }}
 animate();
 function onResize(){{
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
 host.__threeCleanup=function(){{
@@ -422,8 +442,8 @@ var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
 camera.position.set(0,0,9);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
-renderer.setPixelRatio(window.devicePixelRatio||1);
 {bg_clear}
 var group=new THREE.Group();
 scene.add(group);
@@ -493,8 +513,13 @@ renderer.render(scene,camera);
 }}
 animate();
 function onResize(){{
-var nw=host.clientWidth||w,nh=host.clientHeight||h;
-if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}}
+var rect=host.getBoundingClientRect();
+var nw=Math.max(1,Math.round(rect.width));
+var nh=Math.max(1,Math.round(rect.height));
+var maxSize=2048;
+var r=Math.min(1,maxSize/Math.max(nw,nh));
+nw=Math.round(nw*r);nh=Math.round(nh*r);
+if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
 host.__threeCleanup=function(){{
