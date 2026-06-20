@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QIAN-PPT 幻灯片编辑器</title>
+<link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23C5E803'/%3E%3Ctext x='50' y='54' font-family='system-ui, -apple-system, sans-serif' font-size='62' font-weight='900' fill='%23000000' text-anchor='middle' dominant-baseline='middle'%3EQ%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&family=Noto+Serif+SC:wght@200;300;400;500;700;900&family=Playfair+Display:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -2367,6 +2368,10 @@ select.form-control {
         <span class="material-symbols-rounded">view_in_ar</span>
         <span data-i18n="toolbar.threeD">3D</span>
       </button>
+      <button class="toolbar-btn" onclick="openAnimationPicker()" title="添加动画" data-i18n-title="toolbar.animationTitle">
+        <span class="material-symbols-rounded">animation</span>
+        <span data-i18n="toolbar.animation">动画</span>
+      </button>
 
       <div class="toolbar-divider"></div>
 
@@ -2561,8 +2566,13 @@ function showCustomDialog({ type, title, message, htmlMessage, defaultValue, isD
     }, 50);
   }
 
+  // 生成唯一实例标识，防止连续调用时跨实例事件污染
+  const dialogInstanceId = Date.now() + Math.random();
+  overlay._currentDialogInstance = dialogInstanceId;
+
   return new Promise((resolve) => {
     const handleConfirm = () => {
+      if (overlay._currentDialogInstance !== dialogInstanceId) return;
       cleanUp();
       if (type === 'prompt') {
         resolve(inputEl.value);
@@ -2572,6 +2582,7 @@ function showCustomDialog({ type, title, message, htmlMessage, defaultValue, isD
     };
 
     const handleCancel = () => {
+      if (overlay._currentDialogInstance !== dialogInstanceId) return;
       cleanUp();
       if (type === 'prompt') {
         resolve(null);
@@ -2583,19 +2594,18 @@ function showCustomDialog({ type, title, message, htmlMessage, defaultValue, isD
     const cleanUp = () => {
       confirmBtn.removeEventListener('click', handleConfirm);
       cancelBtn.removeEventListener('click', handleCancel);
-      
-      overlay.classList.add('closing');
-      box.classList.add('closing');
-      
-      const onAnimationEnd = (e) => {
-        if (e.target === overlay) {
-          overlay.style.display = 'none';
-          overlay.classList.remove('closing');
-          box.classList.remove('closing');
-          overlay.removeEventListener('animationend', onAnimationEnd);
-        }
-      };
-      overlay.addEventListener('animationend', onAnimationEnd);
+
+      // 立即移除上一次残留的 animationend 监听器（修复连续弹窗竞态条件）
+      const prevAnimEndHandler = overlay._dialogAnimEndHandler;
+      if (prevAnimEndHandler) {
+        overlay.removeEventListener('animationend', prevAnimEndHandler);
+        overlay._dialogAnimEndHandler = null;
+      }
+      overlay.classList.remove('closing');
+      box.classList.remove('closing');
+
+      // 立即隐藏，不依赖动画结束后才清理（确保 overlay 可被下一次调用安全复用）
+      overlay.style.display = 'none';
     };
 
     confirmBtn.addEventListener('click', handleConfirm);
@@ -2810,10 +2820,32 @@ function handleCustomColorInput(hex) {
   }
 }
 
+function updateFavicon(color) {
+  try {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${color}"/><text x="50" y="54" font-family="system-ui, -apple-system, sans-serif" font-size="62" font-weight="900" fill="#000000" text-anchor="middle" dominant-baseline="middle">Q</text></svg>`;
+    const dataUri = 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    let link = document.querySelector('link[rel*="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      link.type = 'image/svg+xml';
+      document.head.appendChild(link);
+    } else {
+      link.type = 'image/svg+xml';
+    }
+    link.href = dataUri;
+  } catch (e) {
+    console.error('Failed to update favicon:', e);
+  }
+}
+
 function changeThemeColor(hex, pushToHistory = true) {
   if (!hex || !hex.startsWith('#') || hex.length !== 7) return;
 
   const colors = getThemeColors(hex);
+  
+  // 更新 Favicon
+  updateFavicon(colors.accentHex);
   
   // 更新 CSS 变量
   document.documentElement.style.setProperty('--accent', colors.accentHex);
@@ -2953,28 +2985,6 @@ function toggleFillThemeLink(checked) {
     if (pFill) pFill.value = hexToColorInput(accentColor);
     if (pFillHex) pFillHex.value = accentColor;
     if (pRectFill) pRectFill.value = hexToColorInput(accentColor);
-    
-    // Disable inputs
-    if (pFill) pFill.disabled = true;
-    if (pFillHex) pFillHex.disabled = true;
-    if (pRectFill) {
-      pRectFill.disabled = true;
-      const rectHexInput = pRectFill.nextElementSibling;
-      if (rectHexInput) rectHexInput.disabled = true;
-    }
-  } else {
-    // Enable inputs
-    const pFill = document.getElementById('propFill');
-    const pFillHex = document.getElementById('propFillHex');
-    const pRectFill = document.getElementById('propRectFill');
-    
-    if (pFill) pFill.disabled = false;
-    if (pFillHex) pFillHex.disabled = false;
-    if (pRectFill) {
-      pRectFill.disabled = false;
-      const rectHexInput = pRectFill.nextElementSibling;
-      if (rectHexInput) rectHexInput.disabled = false;
-    }
   }
   
   obj.setCoords();
@@ -2999,25 +3009,6 @@ function toggleStrokeThemeLink(checked) {
     
     if (pStroke) pStroke.value = hexToColorInput(accentColor);
     if (pStrokeHex) pStrokeHex.value = accentColor;
-    
-    // Disable inputs
-    if (pStroke) pStroke.disabled = true;
-    if (pStrokeHex) {
-      pStrokeHex.disabled = true;
-    } else if (pStroke && pStroke.nextElementSibling) {
-      pStroke.nextElementSibling.disabled = true;
-    }
-  } else {
-    // Enable inputs
-    const pStroke = document.getElementById('propStroke');
-    const pStrokeHex = document.getElementById('propStrokeHex');
-    
-    if (pStroke) pStroke.disabled = false;
-    if (pStrokeHex) {
-      pStrokeHex.disabled = false;
-    } else if (pStroke && pStroke.nextElementSibling) {
-      pStroke.nextElementSibling.disabled = false;
-    }
   }
   
   obj.setCoords();
@@ -3052,21 +3043,14 @@ function toggleComponentThemeLink(path, checked) {
     const textInput = document.querySelector(`.form-component-input[data-path="${path}"]`);
     if (colorInput) {
       colorInput.value = hexToColorInput(accentColor);
-      colorInput.disabled = true;
     }
     if (textInput) {
       textInput.value = accentColor;
-      textInput.disabled = true;
     }
-    
+
     // Sync to canvas
     syncComponentFromUI();
   } else {
-    const colorInput = document.querySelector(`.form-component-color[data-path="${path}"]`);
-    const textInput = document.querySelector(`.form-component-input[data-path="${path}"]`);
-    if (colorInput) colorInput.disabled = false;
-    if (textInput) textInput.disabled = false;
-    
     // Just sync from UI (keep current color but disable link)
     syncComponentFromUI();
   }
@@ -5918,6 +5902,191 @@ function renderShapeGrid() {
   });
 }
 
+// ============ 动画组件（CSS Animation）============
+const ANIMATION_PRESETS = [
+  { name: 'shimmer-border', icon: 'border_style', labelKey: 'animation.shimmerBorder', label: '流光边框' },
+  { name: 'pulse-circle',   icon: 'radio_button_unchecked', labelKey: 'animation.pulseCircle', label: '呼吸圆框' },
+  { name: 'pulse-square',   icon: 'check_box_outline_blank', labelKey: 'animation.pulseSquare', label: '呼吸方框' },
+  { name: 'moving-arrow',   icon: 'arrow_forward', labelKey: 'animation.movingArrow', label: '移动箭头' },
+  { name: 'pulse-dot',      icon: 'fiber_manual_record', labelKey: 'animation.pulseDot', label: '脉冲圆点' }
+];
+
+function _genAnimUid() {
+  return 'anim-' + Date.now() + '-' + Math.round(Math.random() * 1000);
+}
+
+function generateAnimationHtml(type, uid, data) {
+  data = data || {};
+  const color = data.color || '#C5E803';
+  const duration = Math.max(0.5, Math.min(5, parseFloat(data.duration) || 2));
+  const cls = 'qian-anim-' + uid;
+
+  let html = '';
+  let css = '';
+
+  switch (type) {
+    case 'shimmer-border': {
+      html = `<div class="${cls}"></div>`;
+      css = `
+        .${cls} { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 4px; }
+        .${cls}::before { content: ''; position: absolute; inset: 0; padding: 4px; background: conic-gradient(from 0deg, transparent 0%, ${color} 25%, transparent 50%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; animation: ${cls}-spin ${duration}s linear infinite; }
+        @keyframes ${cls}-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `;
+      break;
+    }
+    case 'pulse-circle': {
+      html = `<div class="${cls}"><div class="${cls}-core"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .${cls}-core { width: 80%; height: 80%; border-radius: 50%; border: 4px solid ${color}; animation: ${cls}-pulse ${duration}s ease-in-out infinite; }
+        @keyframes ${cls}-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.55; } }
+      `;
+      break;
+    }
+    case 'pulse-square': {
+      html = `<div class="${cls}"><div class="${cls}-core"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .${cls}-core { width: 80%; height: 80%; border-radius: 4px; border: 4px solid ${color}; animation: ${cls}-pulse ${duration}s ease-in-out infinite; }
+        @keyframes ${cls}-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
+      `;
+      break;
+    }
+    case 'moving-arrow': {
+      html = `<div class="${cls}"><svg viewBox="0 0 24 24"><polygon points="2,10 13,10 13,5 22,12 13,19 13,14 2,14"/></svg></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .${cls} svg { width: 70%; height: 70%; fill: ${color}; animation: ${cls}-move ${duration}s ease-in-out infinite alternate; }
+        @keyframes ${cls}-move { from { transform: translateX(-18%); } to { transform: translateX(18%); } }
+      `;
+      break;
+    }
+    case 'pulse-dot': {
+      html = `<div class="${cls}"><div class="${cls}-core"></div></div>`;
+      css = `
+        .${cls} { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .${cls}-core { width: 40%; height: 40%; border-radius: 50%; background: ${color}; animation: ${cls}-dot ${duration}s ease-in-out infinite; }
+        @keyframes ${cls}-dot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } }
+      `;
+      break;
+    }
+    default:
+      html = `<div class="${cls}"></div>`;
+  }
+
+  return { html, css };
+}
+
+function refreshAnimationClone(obj) {
+  if (!obj || obj.elementType !== 'html' || !obj.meta || obj.meta.role !== 'animation') return;
+  const type = obj.meta.animationType;
+  const data = obj.meta.data || { color: '#C5E803', duration: 2 };
+  const newUid = _genAnimUid();
+  obj.meta.uid = newUid;
+  const { html, css } = generateAnimationHtml(type, newUid, data);
+  obj.html = html;
+  obj.css = css;
+}
+
+function openAnimationPicker() {
+  if (!canvas) return;
+  const modal = document.getElementById('animationPickerModal');
+  if (!modal) return;
+  applyI18n(modal);
+  modal.style.display = 'flex';
+  renderAnimationGrid();
+}
+
+function closeAnimationPicker() {
+  const modal = document.getElementById('animationPickerModal');
+  if (modal) {
+    const content = modal.querySelector('.modal-content');
+    modal.classList.add('closing');
+    if (content) content.classList.add('closing');
+
+    const onAnimationEnd = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+        if (content) content.classList.remove('closing');
+        modal.removeEventListener('animationend', onAnimationEnd);
+      }
+    };
+    modal.addEventListener('animationend', onAnimationEnd);
+  }
+}
+
+function renderAnimationGrid() {
+  const grid = document.getElementById('animationGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  ANIMATION_PRESETS.forEach(preset => {
+    const card = document.createElement('div');
+    card.className = 'component-card';
+    card.style.cssText = 'cursor:pointer; padding:16px; border:1px solid var(--border); border-radius:var(--radius); text-align:center; transition:all 0.2s; background:var(--bg-surface);';
+    card.onmouseenter = () => { card.style.borderColor = 'var(--accent)'; };
+    card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; };
+    const label = t(preset.labelKey);
+    card.innerHTML = `
+      <div style="font-size:36px; margin-bottom:8px; color:var(--accent);">
+        <span class="material-symbols-rounded" style="font-size:36px;">${preset.icon}</span>
+      </div>
+      <div style="font-size:13px; font-weight:500;">${label !== preset.labelKey ? label : preset.label}</div>
+    `;
+    card.onclick = () => {
+      addAnimationElement(preset.name);
+      closeAnimationPicker();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function addAnimationElement(type) {
+  if (!canvas) return;
+  const width = 180;
+  const height = 180;
+  const uid = _genAnimUid();
+  const data = { color: '#C5E803', duration: 2 };
+  const { html, css } = generateAnimationHtml(type, uid, data);
+
+  const htmlBox = new fabric.Rect({
+    left: (canvas.width - width) / 2,
+    top: (canvas.height - height) / 2,
+    width: width,
+    height: height,
+    fill: 'transparent',
+    stroke: 'transparent',
+    strokeWidth: 0,
+    rx: 0,
+    ry: 0,
+    cornerColor: 'rgba(0,0,0,0.5)',
+    transparentCorners: false,
+    cornerSize: 8,
+    padding: 0,
+    hasBorders: true,
+    hasControls: true,
+    centeredScaling: true
+  });
+  htmlBox.id = 'elem-' + Date.now() + '-' + Math.round(Math.random() * 10000);
+  htmlBox.elementType = 'html';
+  htmlBox.html = html;
+  htmlBox.css = css;
+  htmlBox.meta = {
+    role: 'animation',
+    animationType: type,
+    uid: uid,
+    data: data
+  };
+
+  canvas.add(htmlBox);
+  canvas.setActiveObject(htmlBox);
+  canvas.requestRenderAll();
+
+  ensureHtmlPreviewLayer();
+  pushHistory();
+  scheduleAutoSave();
+}
+
 async function addImageToCanvas(src) {
   if (!canvas) return;
   try {
@@ -6676,6 +6845,7 @@ function renderPropsForm(obj) {
   const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle' || obj.type === 'polygon' || obj.elementType === 'arrow' || obj.elementType === 'star';
   const isHtml = obj.elementType === 'html';
   const is3D = isHtml && obj.meta && obj.meta.role === '3d';
+  const isAnimation = isHtml && obj.meta && obj.meta.role === 'animation';
   const opacity = obj.opacity ?? 1;
   const locked = !!obj.lockMovementX;
 
@@ -6731,7 +6901,7 @@ function renderPropsForm(obj) {
     ${isText ? renderTextProps(obj) : ''}
     ${isImage ? renderImageProps(obj) : ''}
     ${isShape && !is3D ? renderShapeProps(obj, isRect) : ''}
-    ${is3D ? render3DProps(obj) : (isHtml ? renderHtmlProps(obj) : '')}
+    ${is3D ? render3DProps(obj) : (isAnimation ? renderAnimationProps(obj) : (isHtml ? renderHtmlProps(obj) : ''))}
 
     <!-- 图层控制 -->
     <div class="props-section">
@@ -6779,6 +6949,10 @@ function getTypeLabel(type, obj) {
     if (obj.meta && obj.meta.role === '3d') {
       const label3D = t('props.type3D');
       return label3D !== 'props.type3D' ? label3D : '3D 元素';
+    }
+    if (obj.meta && obj.meta.role === 'animation') {
+      const label = t('props.type.animation');
+      return label !== 'props.type.animation' ? label : '动画组件';
     }
     if (obj.meta && obj.meta.component) {
       return (t('props.type.component') !== 'props.type.component' ? t('props.type.component') : '组件') + ' (' + obj.meta.component + ')';
@@ -6966,8 +7140,8 @@ function renderTextProps(obj) {
         <div class="form-group" style="margin-bottom:12px;">
           <label>${t('props.label.color')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" onchange="applyTextProp('fill', this.value)" ${obj.fillThemeLink ? 'disabled' : ''}>
-            <input type="text" class="form-control color-hex" id="propFillHex" value="${fillVal}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);" ${obj.fillThemeLink ? 'disabled' : ''}>
+            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" onchange="applyTextProp('fill', this.value)">
+            <input type="text" class="form-control color-hex" id="propFillHex" value="${fillVal}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
@@ -7010,8 +7184,8 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:12px;">
         <label>${t('props.label.color')}</label>
         <div class="color-input-wrap">
-          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" onchange="applyTextProp('fill', this.value)" ${obj.fillThemeLink ? 'disabled' : ''}>
-          <input type="text" class="form-control color-hex" id="propFillHex" value="${obj.fill || '#0a0a0a'}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);" ${obj.fillThemeLink ? 'disabled' : ''}>
+          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" onchange="applyTextProp('fill', this.value)">
+          <input type="text" class="form-control color-hex" id="propFillHex" value="${obj.fill || '#0a0a0a'}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
         </div>
         <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
@@ -7147,6 +7321,38 @@ function renderHtmlProps(obj) {
   }
 }
 
+function renderAnimationProps(obj) {
+  const data = (obj.meta && obj.meta.data) || {};
+  const color = data.color || '#C5E803';
+  const duration = Math.max(0.5, Math.min(5, parseFloat(data.duration) || 2));
+
+  const sectionTitle = t('props.section.animationProps');
+  const colorLabel = t('props.label.animationColor');
+  const durationLabel = t('props.label.animationDuration');
+
+  return `
+    <div class="props-section">
+      <div class="props-section-title">${sectionTitle !== 'props.section.animationProps' ? sectionTitle : '动画属性'}</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>${colorLabel !== 'props.label.animationColor' ? colorLabel : '颜色'}</label>
+          <div class="color-input-wrap">
+            <input type="color" id="propAnimColor" value="${rgbToHex(color)}" oninput="applyAnimationProp('color', this.value)">
+            <input type="text" class="form-control color-hex" value="${color}" onchange="applyAnimationProp('color', this.value)">
+          </div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>${durationLabel !== 'props.label.animationDuration' ? durationLabel : '动画时长'}</label>
+        <div class="range-group">
+          <input type="range" id="propAnimDuration" min="0.5" max="5" step="0.1" value="${duration}" oninput="document.getElementById('propAnimDurationVal').textContent=this.value+'s'; applyAnimationProp('duration', parseFloat(this.value))">
+          <span class="range-value" id="propAnimDurationVal">${duration}s</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // 形状特有属性
 function renderShapeProps(obj, showRadius) {
   const rx = obj.rx || 0;
@@ -7159,8 +7365,8 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.fillColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" onchange="applyProp('fill', this.value)" ${obj.fillThemeLink ? 'disabled' : ''}>
-            <input type="text" class="form-control color-hex" value="${obj.fill || '#C5E803'}" onchange="applyProp('fill', this.value);" ${obj.fillThemeLink ? 'disabled' : ''}>
+            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" onchange="applyProp('fill', this.value)">
+            <input type="text" class="form-control color-hex" value="${obj.fill || '#C5E803'}" onchange="applyProp('fill', this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
@@ -7172,8 +7378,8 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.strokeColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" onchange="applyProp('stroke', this.value)" ${obj.strokeThemeLink ? 'disabled' : ''}>
-            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value);" ${obj.strokeThemeLink ? 'disabled' : ''}>
+            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" onchange="applyProp('stroke', this.value)">
+            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="propStrokeThemeLink" ${obj.strokeThemeLink ? 'checked' : ''} onchange="toggleStrokeThemeLink(this.checked)">
@@ -9727,8 +9933,8 @@ function generateComponentForm(data, path = [], activeObj = null) {
         const isLinked = activeObj && activeObj.meta && activeObj.meta.themeLinks && activeObj.meta.themeLinks[currentPath];
         html += `
           <div class="color-input-wrap">
-            <input type="color" class="form-component-color" data-path="${currentPath}" value="${hexToColorInput(String(value))}" onchange="syncColorPicker(this)" ${isLinked ? 'disabled' : ''}>
-            <input type="text" class="form-control color-hex form-component-input" data-path="${currentPath}" value="${escapeHtml(String(value))}" oninput="syncColorTextInput(this)" ${isLinked ? 'disabled' : ''}>
+            <input type="color" class="form-component-color" data-path="${currentPath}" value="${hexToColorInput(String(value))}" onchange="syncColorPicker(this)">
+            <input type="text" class="form-control color-hex form-component-input" data-path="${currentPath}" value="${escapeHtml(String(value))}" oninput="syncColorTextInput(this)">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:4px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" class="component-theme-link-checkbox" data-path="${currentPath}" ${isLinked ? 'checked' : ''} onchange="toggleComponentThemeLink('${currentPath}', this.checked)">
@@ -9811,12 +10017,22 @@ function getFieldLabel(key, isRole = false) {
   return dict[key] || key;
 }
 
+function breakComponentColorThemeLink(path) {
+  const activeObj = canvas && canvas.getActiveObject();
+  if (activeObj && activeObj.meta && activeObj.meta.themeLinks) {
+    activeObj.meta.themeLinks[path] = false;
+  }
+  const checkbox = document.querySelector(`.component-theme-link-checkbox[data-path="${path}"]`);
+  if (checkbox) checkbox.checked = false;
+}
+
 function syncColorPicker(colorInput) {
   const path = colorInput.dataset.path;
   const textInput = document.querySelector(`.form-component-input[data-path="${path}"]`);
   if (textInput) {
     textInput.value = colorInput.value;
   }
+  breakComponentColorThemeLink(path);
   syncComponentFromUI();
 }
 
@@ -9826,6 +10042,7 @@ function syncColorTextInput(textInput) {
   if (colorInput && textInput.value.startsWith('#') && textInput.value.length === 7) {
     colorInput.value = textInput.value;
   }
+  breakComponentColorThemeLink(path);
   debouncedSyncComponent();
 }
 
@@ -10167,6 +10384,7 @@ function duplicateSelectedElement() {
         if (obj.type === 'image') {
           updateImageClipPath(obj);
         }
+        refreshAnimationClone(obj);
         canvas.add(obj);
       });
       clonedObj.setCoords();
@@ -10176,6 +10394,7 @@ function duplicateSelectedElement() {
       if (clonedObj.type === 'image') {
         updateImageClipPath(clonedObj);
       }
+      refreshAnimationClone(clonedObj);
       canvas.add(clonedObj);
       canvas.setActiveObject(clonedObj);
     }
@@ -10538,6 +10757,19 @@ function removeComponentArrayItem(path, index) {
     </div>
     <div class="modal-body" style="padding: 20px; overflow-y: auto;">
       <div id="shapeGrid" class="components-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 动画组件选择器模态框 -->
+<div id="animationPickerModal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeAnimationPicker()">
+  <div class="modal-content" style="width: 640px; max-width: 90vw; max-height: 85vh;">
+    <div class="modal-header">
+      <h3 data-i18n="animation.modalTitle">添加动画组件</h3>
+      <button class="modal-close-btn" onclick="closeAnimationPicker()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 20px; overflow-y: auto;">
+      <div id="animationGrid" class="components-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;"></div>
     </div>
   </div>
 </div>
@@ -11293,8 +11525,8 @@ function render3DProps(obj) {
         <div class="form-group">
           <label>${colorLabel !== 'props.label.fillColor' ? colorLabel : '颜色'}</label>
           <div class="color-input-wrap">
-            <input type="color" id="prop3DColor" value="${color}" oninput="apply3DProp('color', this.value)" ${obj.meta && obj.meta.colorThemeLink ? 'disabled' : ''}>
-            <input type="text" class="form-control color-hex" value="${color}" oninput="apply3DProp('color', this.value)" ${obj.meta && obj.meta.colorThemeLink ? 'disabled' : ''}>
+            <input type="color" id="prop3DColor" value="${color}" oninput="apply3DProp('color', this.value)">
+            <input type="text" class="form-control color-hex" value="${color}" oninput="apply3DProp('color', this.value)">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="prop3DColorThemeLink" ${(obj.meta && obj.meta.colorThemeLink) ? 'checked' : ''} onchange="toggle3DThemeLink(this.checked)">
@@ -11351,6 +11583,12 @@ function apply3DProp(propName, value) {
   const obj = canvas.getActiveObject();
   if (!obj || !obj.meta || obj.meta.role !== '3d') return;
 
+  if (propName === 'color') {
+    obj.meta.colorThemeLink = false;
+    const chk = document.getElementById('prop3DColorThemeLink');
+    if (chk) chk.checked = false;
+  }
+
   obj.meta.data = obj.meta.data || {};
   obj.meta.data[propName] = value;
 
@@ -11364,6 +11602,31 @@ function apply3DProp(propName, value) {
   // 重建 DOM 覆盖层中的 3D 场景
   rebuild3DScene(obj);
   
+  scheduleAutoSave();
+}
+
+function applyAnimationProp(propName, value) {
+  if (!canvas) return;
+  const obj = canvas.getActiveObject();
+  if (!obj || !obj.meta || obj.meta.role !== 'animation') return;
+
+  obj.meta.data = obj.meta.data || {};
+  if (propName === 'duration') {
+    value = Math.max(0.5, Math.min(5, parseFloat(value) || 2));
+  }
+  obj.meta.data[propName] = value;
+
+  const type = obj.meta.animationType;
+  const uid = obj.meta.uid || _genAnimUid();
+  obj.meta.uid = uid;
+
+  const { html, css } = generateAnimationHtml(type, uid, obj.meta.data);
+  obj.html = html;
+  obj.css = css;
+
+  rebuild3DScene(obj);
+  canvas.requestRenderAll();
+  pushHistory();
   scheduleAutoSave();
 }
 
@@ -11442,9 +11705,8 @@ function toggle3DThemeLink(checked) {
     // 更新颜色输入框
     const pColor = document.getElementById('prop3DColor');
     const pColorHex = document.querySelector('#prop3DColor + input, #prop3DColor ~ .color-hex');
-    if (pColor) { pColor.value = hexToColorInput(accentColor); pColor.disabled = true; }
-    const hexInputs = document.querySelectorAll('.form-row .color-hex');
-    hexInputs.forEach(el => { if (el.offsetParent && el.closest('.props-section')) { el.value = accentColor; el.disabled = true; } });
+    if (pColor) { pColor.value = hexToColorInput(accentColor); }
+    if (pColorHex) { pColorHex.value = accentColor; }
 
     // 重新生成 3D 代码并重建场景
     if (obj.meta.data.geometry !== 'custom') {
@@ -11453,12 +11715,6 @@ function toggle3DThemeLink(checked) {
       obj.html = generateThreeJSCode(obj.meta.data, uid);
     }
     rebuild3DScene(obj);
-  } else {
-    // 启用颜色输入
-    const pColor = document.getElementById('prop3DColor');
-    if (pColor) pColor.disabled = false;
-    const hexInputs = document.querySelectorAll('.form-row .color-hex');
-    hexInputs.forEach(el => { if (el.offsetParent && el.closest('.props-section')) { el.disabled = false; } });
   }
   scheduleAutoSave();
 }

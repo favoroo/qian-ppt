@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ settings.title }}</title>
+<link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='{{ (settings.accentHex | default('#C5E803')) | replace('#', '%23') }}'/%3E%3Ctext x='50' y='54' font-family='system-ui, -apple-system, sans-serif' font-size='62' font-weight='900' fill='%23000000' text-anchor='middle' dominant-baseline='middle'%3EQ%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&family=Noto+Serif+SC:wght@200;300;400;500;700;900&family=Playfair+Display:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -1762,6 +1763,10 @@ function go(n){
   document.body.classList.toggle('dark-bg', isDark);
   darkMode = isDark;
   updateActiveThreeHosts(idx);
+  // 更新 ASCII 背景的活动幻灯片索引，并立即重绘一次新幻灯片背景
+  if(typeof window.__setActiveAsciiIdx === 'function'){
+    window.__setActiveAsciiIdx(idx);
+  }
   if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
   lock=true;setTimeout(()=>lock=false,700);
 }
@@ -2919,18 +2924,22 @@ if(motion){
   }, {passive:true});
 
   let t0 = performance.now();
-  let frame = 0, asciiRAF = 0, running = false;
+  let asciiRAF = 0, running = false;
+  let lastAsciiFrame = 0;
+  const ASCII_FRAME_INTERVAL = 33; // ~30fps，与编辑器背景帧率一致
+  let activeAsciiIdx = 0; // 当前需要渲染的幻灯片索引
   function tick(now){
     if(!running || window.__lowPowerMode){running=false;asciiRAF=0;return;}
+    // 帧率节流：30 FPS，与编辑器 BG_FRAME_INTERVAL 一致，给 3D 动画留出帧时间
+    if(now - lastAsciiFrame < ASCII_FRAME_INTERVAL){
+      asciiRAF = requestAnimationFrame(tick);
+      return;
+    }
+    lastAsciiFrame = now;
     const t = (now - t0) / 1000 * 0.55;
-    frame++;
-    canvases.forEach(c=>{
-      const slide = c.closest('.slide');
-      const rect = slide ? slide.getBoundingClientRect() : null;
-      const onscreen = rect && rect.right > 0 && rect.left < window.innerWidth;
-      if(!onscreen && (frame & 3) !== 0) return;
-      draw(c, t);
-    });
+    // 只绘制当前活动幻灯片的 canvas，不再遍历所有幻灯片，避免每帧 getBoundingClientRect 强制回流
+    const c = canvases[activeAsciiIdx];
+    if(c) draw(c, t);
     asciiRAF = requestAnimationFrame(tick);
   }
   function start(){
@@ -2939,7 +2948,7 @@ if(motion){
     canvases.forEach(c=>draw(c, 0));
     if(window.__lowPowerMode) return;
     t0 = performance.now();
-    frame = 0;
+    lastAsciiFrame = 0;
     running = true;
     asciiRAF = requestAnimationFrame(tick);
   }
@@ -2950,6 +2959,14 @@ if(motion){
     asciiRAF = 0;
     pending = null;
   }
+  // 供 go() 调用：切换幻灯片时更新活动背景索引，并立即重绘新幻灯片背景避免空白
+  window.__setActiveAsciiIdx = function(newIdx){
+    activeAsciiIdx = Math.max(0, Math.min(canvases.length - 1, newIdx));
+    if(running && !window.__lowPowerMode && canvases[activeAsciiIdx]){
+      const t = (performance.now() - t0) / 1000 * 0.55;
+      draw(canvases[activeAsciiIdx], t);
+    }
+  };
   addEventListener('swiss-low-power-change', e=>{e.detail.on ? stop() : start();});
   start();
 })();

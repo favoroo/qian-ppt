@@ -49,7 +49,7 @@ LOG_ENABLED = True
 
 # 生产模式开关：True 使用 Waitress WSGI 服务器（适合部署），False 使用 Flask 自带开发服务器
 # 切换为 True 前请先安装依赖：pip install waitress
-PRODUCTION_MODE = True
+PRODUCTION_MODE = False
 
 # 日志配置：按日期落盘 + 异步写入 + 大小轮转（详见 log_config.py）
 from log_config import setup_logging, get_logger
