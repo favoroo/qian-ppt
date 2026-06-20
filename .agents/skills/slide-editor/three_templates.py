@@ -175,26 +175,39 @@ var material=new THREE.MeshStandardMaterial({{color:{color_js},metalness:{metaln
 var mesh=new THREE.Mesh(geometry,material);
 scene.add(mesh);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
-function animate(){{
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){{
 animId=requestAnimationFrame(animate);
-if(autoRotate){{mesh.rotation.x+=rotateSpeed;mesh.rotation.y+=rotateSpeed;}}
+if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){{mesh.rotation.x+=rotateSpeed*dt*60;mesh.rotation.y+=rotateSpeed*dt*60;}}
 renderer.render(scene,camera);
 }}
-animate();
+requestAnimationFrame(animate);
 function onResize(){{
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
+host.__threePause=function(){{
+if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
+}};
+host.__threeResume=function(){{
+if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
 host.__threeCleanup=function(){{
-if(animId)cancelAnimationFrame(animId);
+if(animId){{cancelAnimationFrame(animId);animId=null;}}
 try{{geometry.dispose();material.dispose();renderer.dispose();}}catch(e){{}}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 }};
 }})();'''
 
@@ -235,26 +248,39 @@ var mat=new THREE.PointsMaterial({{color:{color_js},size:0.06,transparent:true,o
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
-function animate(){{
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){{
 animId=requestAnimationFrame(animate);
-if(autoRotate){{points.rotation.y+=rotateSpeed;points.rotation.x+=rotateSpeed*0.5;}}
+if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){{points.rotation.y+=rotateSpeed*dt*60;points.rotation.x+=rotateSpeed*0.5*dt*60;}}
 renderer.render(scene,camera);
 }}
-animate();
+requestAnimationFrame(animate);
 function onResize(){{
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
+host.__threePause=function(){{
+if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
+}};
+host.__threeResume=function(){{
+if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
 host.__threeCleanup=function(){{
-if(animId)cancelAnimationFrame(animId);
+if(animId){{cancelAnimationFrame(animId);animId=null;}}
 try{{geo.dispose();mat.dispose();renderer.dispose();}}catch(e){{}}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 }};
 }})();'''
 
@@ -272,7 +298,7 @@ def _generate_galaxy_code(uid: str, color: str, auto_rotate: str, rotate_speed: 
     color_hex = color.lstrip("#")
     color_js = f'0x{color_hex}'
 
-    script = f"""(function(){{
+    script = f'''(function(){{
 var uid="{uid}";
 var host=document.querySelector('[data-uid="'+uid+'"]');
 if(!host||!window.THREE)return;
@@ -317,33 +343,47 @@ var mat=new THREE.PointsMaterial({{size:0.04,vertexColors:true,transparent:true,
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
-function animate(){{
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){{
 animId=requestAnimationFrame(animate);
-if(autoRotate){{points.rotation.y+=rotateSpeed*0.8;}}
+if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){{points.rotation.y+=rotateSpeed*0.8*dt*60;}}
 renderer.render(scene,camera);
 }}
-animate();
+requestAnimationFrame(animate);
 function onResize(){{
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
-host.__threeCleanup=function(){{
-if(animId)cancelAnimationFrame(animId);
-try{{geo.dispose();mat.dispose();renderer.dispose();}}catch(e){{}}
-host.__threeResize=null;
+host.__threePause=function(){{
+if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
 }};
-}})();"""
+host.__threeResume=function(){{
+if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
+host.__threeCleanup=function(){{
+if(animId){{cancelAnimationFrame(animId);animId=null;}}
+try{{geo.dispose();mat.dispose();renderer.dispose();}}catch(e){{}}
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+}};
+}})();'''
 
     return ('<div class="three-host" data-uid="' + uid +
             '" style="width:100%;height:100%;position:relative;overflow:hidden;">'
             '<canvas class="three-canvas"></canvas></div>' +
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
+
 
 def _generate_waves_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
     bg_alpha = "true" if background == "transparent" else "false"
@@ -351,7 +391,7 @@ def _generate_waves_code(uid: str, color: str, auto_rotate: str, rotate_speed: f
     color_hex = color.lstrip("#")
     color_js = f'0x{color_hex}'
 
-    script = f"""(function(){{
+    script = f'''(function(){{
 var uid="{uid}";
 var host=document.querySelector('[data-uid="'+uid+'"]');
 if(!host||!window.THREE)return;
@@ -386,8 +426,15 @@ var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
 var count=0;
-function animate(){{
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){{
 animId=requestAnimationFrame(animate);
+if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
 var positions=geo.attributes.position.array;
 var i=0;
 for(var ix=0;ix<AMOUNTX;ix++){{
@@ -397,32 +444,39 @@ for(var ix=0;ix<AMOUNTX;ix++){{
   }}
 }}
 geo.attributes.position.needsUpdate=true;
-count+=0.05;
-if(autoRotate){{points.rotation.y+=rotateSpeed*0.5;}}
+count+=0.05*dt*60;
+if(autoRotate){{points.rotation.y+=rotateSpeed*0.5*dt*60;}}
 renderer.render(scene,camera);
 }}
-animate();
+requestAnimationFrame(animate);
 function onResize(){{
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
-host.__threeCleanup=function(){{
-if(animId)cancelAnimationFrame(animId);
-try{{geo.dispose();mat.dispose();renderer.dispose();}}catch(e){{}}
-host.__threeResize=null;
+host.__threePause=function(){{
+if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
 }};
-}})();"""
+host.__threeResume=function(){{
+if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
+host.__threeCleanup=function(){{
+if(animId){{cancelAnimationFrame(animId);animId=null;}}
+try{{geo.dispose();mat.dispose();renderer.dispose();}}catch(e){{}}
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
+}};
+}})();'''
 
     return ('<div class="three-host" data-uid="' + uid +
             '" style="width:100%;height:100%;position:relative;overflow:hidden;">'
             '<canvas class="three-canvas"></canvas></div>' +
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
+
 
 def _generate_network_code(uid: str, color: str, auto_rotate: str, rotate_speed: float, background: str) -> str:
     bg_alpha = "true" if background == "transparent" else "false"
@@ -430,7 +484,7 @@ def _generate_network_code(uid: str, color: str, auto_rotate: str, rotate_speed:
     color_hex = color.lstrip("#")
     color_js = f'0x{color_hex}'
 
-    script = f"""(function(){{
+    script = f'''(function(){{
 var uid="{uid}";
 var host=document.querySelector('[data-uid="'+uid+'"]');
 if(!host||!window.THREE)return;
@@ -473,14 +527,22 @@ var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
 group.add(lines);
 
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
-function animate(){{
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){{
 animId=requestAnimationFrame(animate);
+if(isPaused||document.hidden){{lastFrameTime=now;return;}}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+var timeScale=dt*60;
 var vertexpos=0;
 var pos=geometry.attributes.position.array;
 for(var i=0;i<particles;i++){{
-  pos[i*3]+=velocities[i].x;
-  pos[i*3+1]+=velocities[i].y;
-  pos[i*3+2]+=velocities[i].z;
+  pos[i*3]+=velocities[i].x*timeScale;
+  pos[i*3+1]+=velocities[i].y*timeScale;
+  pos[i*3+2]+=velocities[i].z*timeScale;
   if(pos[i*3]<-4||pos[i*3]>4) velocities[i].x*=-1;
   if(pos[i*3+1]<-4||pos[i*3+1]>4) velocities[i].y*=-1;
   if(pos[i*3+2]<-4||pos[i*3+2]>4) velocities[i].z*=-1;
@@ -508,22 +570,28 @@ for(var i=0;i<particles;i++){{
 lines.geometry.setDrawRange(0,numConnected*2);
 lines.geometry.attributes.position.needsUpdate=true;
 
-if(autoRotate){{group.rotation.y+=rotateSpeed;group.rotation.x+=rotateSpeed*0.3;}}
+if(autoRotate){{group.rotation.y+=rotateSpeed*timeScale;group.rotation.x+=rotateSpeed*0.3*timeScale;}}
 renderer.render(scene,camera);
 }}
-animate();
+requestAnimationFrame(animate);
 function onResize(){{
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){{w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}}
 }}
 host.__threeResize=onResize;
+host.__threePause=function(){{
+if(!isPaused){{isPaused=true;if(animId){{cancelAnimationFrame(animId);animId=null;}}}}
+}};
+host.__threeResume=function(){{
+if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId=requestAnimationFrame(animate);}}}}
+}};
 host.__threeCleanup=function(){{
-if(animId)cancelAnimationFrame(animId);
+if(animId){{cancelAnimationFrame(animId);animId=null;}}
 try{{
   geometry.dispose();
   lineGeometry.dispose();
@@ -531,14 +599,16 @@ try{{
   lineMaterial.dispose();
   renderer.dispose();
 }}catch(e){{}}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 }};
-}})();"""
+}})();'''
 
     return ('<div class="three-host" data-uid="' + uid +
             '" style="width:100%;height:100%;position:relative;overflow:hidden;">'
             '<canvas class="three-canvas"></canvas></div>' +
             '<scr' + 'i' + 'pt>' + script + '</scr' + 'i' + 'pt>')
+
+
 def build_3d_element(
     geometry: str = "cube",
     color: str = "#C5E803",

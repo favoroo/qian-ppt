@@ -4993,7 +4993,7 @@ function serializeSingleElement(obj, i) {
     };
   }
 
-  if (obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle') {
+  if (obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle' || obj.type === 'polygon' || obj.elementType === 'arrow' || obj.elementType === 'star') {
     return {
       ...base,
       fill: obj.fill || '#C5E803',
@@ -5003,19 +5003,6 @@ function serializeSingleElement(obj, i) {
       ry: obj.ry || 0,
       fillThemeLink: obj.fillThemeLink || undefined,
       strokeThemeLink: obj.strokeThemeLink || undefined
-    };
-  }
-
-  if (obj.type === 'polygon') {
-    return {
-      ...base,
-      fill: obj.fill || '#C5E803',
-      stroke: obj.stroke || '',
-      strokeWidth: obj.strokeWidth || 0,
-      fillThemeLink: obj.fillThemeLink || undefined,
-      strokeThemeLink: obj.strokeThemeLink || undefined,
-      points: obj.points ? obj.points.map(p => ({ x: p.x, y: p.y })) : [],
-      shapeType: obj.shapeType || undefined
     };
   }
 
@@ -5050,18 +5037,10 @@ function serializeSingleElement(obj, i) {
       if (child.type === 'image') {
         return { ...childBase, src: child.src || (child.getSrc ? child.getSrc() : ''), rx: child.rx || 0, clipType: child.clipType || 'rect' };
       }
-      if (child.type === 'rect' || child.type === 'circle' || child.type === 'triangle') {
+      if (child.type === 'rect' || child.type === 'circle' || child.type === 'triangle' || child.type === 'polygon' || child.elementType === 'arrow' || child.elementType === 'star') {
         return {
           ...childBase, fill: child.fill || '#C5E803', stroke: child.stroke || '', strokeWidth: child.strokeWidth || 0,
           rx: child.rx || 0, ry: child.ry || 0, fillThemeLink: child.fillThemeLink || undefined, strokeThemeLink: child.strokeThemeLink || undefined
-        };
-      }
-      if (child.type === 'polygon') {
-        return {
-          ...childBase, fill: child.fill || '#C5E803', stroke: child.stroke || '', strokeWidth: child.strokeWidth || 0,
-          fillThemeLink: child.fillThemeLink || undefined, strokeThemeLink: child.strokeThemeLink || undefined,
-          points: child.points ? child.points.map(p => ({ x: p.x, y: p.y })) : [],
-          shapeType: child.shapeType || undefined
         };
       }
       return childBase;
@@ -5240,43 +5219,39 @@ async function createFabricObject(elem) {
     applyObjectLock(triangle, !!elem.locked);
     return triangle;
   }
-  if (elem.type === 'polygon') {
-    let points = [];
-    if (elem.points && elem.points.length > 0) {
-      points = elem.points.map(p => ({ x: p.x, y: p.y }));
-    } else {
-      const w = elem.width || 180;
-      const h = elem.height || 180;
-      if (elem.shapeType === 'diamond') {
-        points = _diamondPoints(w, h);
-      } else if (elem.shapeType === 'star') {
-        points = _starPoints(w, h);
-      } else if (elem.shapeType === 'arrow') {
-        points = _arrowPoints(w, h);
-      } else {
-        points = _diamondPoints(w, h);
-      }
-    }
-    const poly = new fabric.Polygon(points, {
+  if (elem.type === 'arrow') {
+    const arrow = new fabric.Polygon(BASE_ARROW_POINTS, {
       left: elem.x, top: elem.y,
       fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
       stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
       strokeWidth: elem.strokeWidth || 0,
-      angle: elem.angle || 0, opacity: elem.opacity ?? 1,
-      objectCaching: false
+      scaleX: (elem.width || BASE_ARROW_W) / BASE_ARROW_W,
+      scaleY: (elem.height || BASE_ARROW_H) / BASE_ARROW_H,
+      angle: elem.angle || 0, opacity: elem.opacity ?? 1
     });
-    if (elem.width && poly.width) {
-      poly.scaleX = elem.width / poly.width;
-    }
-    if (elem.height && poly.height) {
-      poly.scaleY = elem.height / poly.height;
-    }
-    poly.id = elem.id;
-    poly.fillThemeLink = !!elem.fillThemeLink;
-    poly.strokeThemeLink = !!elem.strokeThemeLink;
-    poly.shapeType = elem.shapeType;
-    applyObjectLock(poly, !!elem.locked);
-    return poly;
+    arrow.elementType = 'arrow';
+    arrow.id = elem.id;
+    arrow.fillThemeLink = !!elem.fillThemeLink;
+    arrow.strokeThemeLink = !!elem.strokeThemeLink;
+    applyObjectLock(arrow, !!elem.locked);
+    return arrow;
+  }
+  if (elem.type === 'star') {
+    const star = new fabric.Polygon(BASE_STAR_POINTS, {
+      left: elem.x, top: elem.y,
+      fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
+      stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+      strokeWidth: elem.strokeWidth || 0,
+      scaleX: (elem.width || BASE_STAR_W) / BASE_STAR_W,
+      scaleY: (elem.height || BASE_STAR_H) / BASE_STAR_H,
+      angle: elem.angle || 0, opacity: elem.opacity ?? 1
+    });
+    star.elementType = 'star';
+    star.id = elem.id;
+    star.fillThemeLink = !!elem.fillThemeLink;
+    star.strokeThemeLink = !!elem.strokeThemeLink;
+    applyObjectLock(star, !!elem.locked);
+    return star;
   }
   return null;
 }
@@ -5464,45 +5439,42 @@ async function loadElementsToCanvas(targetCanvas, elements) {
         triangle.strokeThemeLink = !!elem.strokeThemeLink;
         applyObjectLock(triangle, !!elem.locked);
         targetCanvas.add(triangle);
-      } else if (elem.type === 'polygon') {
-        let points = [];
-        if (elem.points && elem.points.length > 0) {
-          points = elem.points.map(p => ({ x: p.x, y: p.y }));
-        } else {
-          const w = elem.width || 180;
-          const h = elem.height || 180;
-          if (elem.shapeType === 'diamond') {
-            points = _diamondPoints(w, h);
-          } else if (elem.shapeType === 'star') {
-            points = _starPoints(w, h);
-          } else if (elem.shapeType === 'arrow') {
-            points = _arrowPoints(w, h);
-          } else {
-            points = _diamondPoints(w, h);
-          }
-        }
-        const poly = new fabric.Polygon(points, {
+      } else if (elem.type === 'arrow') {
+        const arrow = new fabric.Polygon(BASE_ARROW_POINTS, {
           left: elem.x,
           top: elem.y,
           fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
           stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
           strokeWidth: elem.strokeWidth || 0,
+          scaleX: (elem.width || BASE_ARROW_W) / BASE_ARROW_W,
+          scaleY: (elem.height || BASE_ARROW_H) / BASE_ARROW_H,
           angle: elem.angle || 0,
-          opacity: elem.opacity ?? 1,
-          objectCaching: false
+          opacity: elem.opacity ?? 1
         });
-        if (elem.width && poly.width) {
-          poly.scaleX = elem.width / poly.width;
-        }
-        if (elem.height && poly.height) {
-          poly.scaleY = elem.height / poly.height;
-        }
-        poly.id = elem.id;
-        poly.fillThemeLink = !!elem.fillThemeLink;
-        poly.strokeThemeLink = !!elem.strokeThemeLink;
-        poly.shapeType = elem.shapeType;
-        applyObjectLock(poly, !!elem.locked);
-        targetCanvas.add(poly);
+        arrow.elementType = 'arrow';
+        arrow.id = elem.id;
+        arrow.fillThemeLink = !!elem.fillThemeLink;
+        arrow.strokeThemeLink = !!elem.strokeThemeLink;
+        applyObjectLock(arrow, !!elem.locked);
+        targetCanvas.add(arrow);
+      } else if (elem.type === 'star') {
+        const star = new fabric.Polygon(BASE_STAR_POINTS, {
+          left: elem.x,
+          top: elem.y,
+          fill: elem.fillThemeLink ? getCurrentAccentColor() : (elem.fill || '#C5E803'),
+          stroke: elem.strokeThemeLink ? getCurrentAccentColor() : (elem.stroke || ''),
+          strokeWidth: elem.strokeWidth || 0,
+          scaleX: (elem.width || BASE_STAR_W) / BASE_STAR_W,
+          scaleY: (elem.height || BASE_STAR_H) / BASE_STAR_H,
+          angle: elem.angle || 0,
+          opacity: elem.opacity ?? 1
+        });
+        star.elementType = 'star';
+        star.id = elem.id;
+        star.fillThemeLink = !!elem.fillThemeLink;
+        star.strokeThemeLink = !!elem.strokeThemeLink;
+        applyObjectLock(star, !!elem.locked);
+        targetCanvas.add(star);
       } else if (elem.type === 'group' && elem.objects && elem.objects.length > 0) {
         const childObjects = [];
         for (const child of elem.objects) {
@@ -5779,13 +5751,88 @@ function addHollowCircleElement() {
   scheduleAutoSave();
 }
 
+// 块状箭头基础数据
+const BASE_ARROW_POINTS = [
+  { x: 0, y: 30 },
+  { x: 100, y: 30 },
+  { x: 100, y: 0 },
+  { x: 180, y: 50 },
+  { x: 100, y: 100 },
+  { x: 100, y: 70 },
+  { x: 0, y: 70 }
+];
+const BASE_ARROW_W = 180;
+const BASE_ARROW_H = 100;
+
+// 添加箭头
+function addArrowElement() {
+  if (!canvas) return;
+  const arrow = new fabric.Polygon(BASE_ARROW_POINTS, {
+    left: CANVAS_BASE_WIDTH / 2 - 90,
+    top: CANVAS_BASE_HEIGHT / 2 - 50,
+    fill: getCurrentAccentColor(),
+    stroke: '',
+    strokeWidth: 0,
+    scaleX: 1,
+    scaleY: 1
+  });
+  arrow.elementType = 'arrow';
+  arrow.id = 'elem-' + Date.now();
+  arrow.fillThemeLink = true;
+  canvas.add(arrow);
+  canvas.setActiveObject(arrow);
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+}
+
+// 五角星基础数据
+const BASE_STAR_POINTS = [
+  { x: 50, y: 0 },
+  { x: 61.8, y: 33.8 },
+  { x: 97.6, y: 34.5 },
+  { x: 69.0, y: 56.2 },
+  { x: 79.4, y: 90.5 },
+  { x: 50, y: 70 },
+  { x: 20.6, y: 90.5 },
+  { x: 31.0, y: 56.2 },
+  { x: 2.5, y: 34.5 },
+  { x: 38.2, y: 33.8 }
+];
+const BASE_STAR_W = 100;
+const BASE_STAR_H = 100;
+
+// 添加五角星
+function addStarElement() {
+  if (!canvas) return;
+  const star = new fabric.Polygon(BASE_STAR_POINTS, {
+    left: CANVAS_BASE_WIDTH / 2 - 60,
+    top: CANVAS_BASE_HEIGHT / 2 - 60,
+    fill: getCurrentAccentColor(),
+    stroke: '',
+    strokeWidth: 0,
+    scaleX: 1.2,
+    scaleY: 1.2
+  });
+  star.elementType = 'star';
+  star.id = 'elem-' + Date.now();
+  star.fillThemeLink = true;
+  canvas.add(star);
+  canvas.setActiveObject(star);
+  canvas.requestRenderAll();
+  pushHistory();
+  scheduleAutoSave();
+}
+
 // 形状预设配置，便于后续扩展更多形状
 const SHAPE_PRESETS = [
-  { name: 'rect', labelKey: 'shape.rect', icon: 'rectangle' },
-  { name: 'circle', labelKey: 'shape.circle', icon: 'circle' },
-  { name: 'triangle', labelKey: 'shape.triangle', icon: 'change_history' },
-  { name: 'hollow-rect', labelKey: 'shape.hollowRect', icon: 'crop_square' },
-  { name: 'hollow-circle', labelKey: 'shape.hollowCircle', icon: 'donut_large' }
+  { name: 'rect', labelKey: 'shape.rect', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><rect x="2" y="5" width="20" height="14" rx="1.5" ry="1.5"/></svg>' },
+  { name: 'circle', labelKey: 'shape.circle', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>' },
+  { name: 'triangle', labelKey: 'shape.triangle', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,3 22,20 2,20"/></svg>' },
+  { name: 'hollow-rect', labelKey: 'shape.hollowRect', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"/></svg>' },
+  { name: 'hollow-circle', labelKey: 'shape.hollowCircle', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/></svg>' },
+  { name: 'arrow', labelKey: 'shape.arrow', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><polygon points="2,10 13,10 13,5 22,12 13,19 13,14 2,14"/></svg>' },
+  { name: 'star', labelKey: 'shape.star', icon: '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>' }
 ];
 
 // 统一插入形状入口
@@ -5806,6 +5853,12 @@ function addShapeElement(type) {
       break;
     case 'hollow-circle':
       addHollowCircleElement();
+      break;
+    case 'arrow':
+      addArrowElement();
+      break;
+    case 'star':
+      addStarElement();
       break;
     default:
       console.warn('Unknown shape type:', type);
@@ -5852,8 +5905,8 @@ function renderShapeGrid() {
     card.onmouseleave = () => { card.style.borderColor = 'var(--border)'; };
     const label = t(preset.labelKey);
     card.innerHTML = `
-      <div style="font-size:36px; margin-bottom:8px; color:var(--accent);">
-        <span class="material-symbols-rounded" style="font-size:36px;">${preset.icon}</span>
+      <div style="font-size:36px; margin-bottom:8px; color:var(--accent); display:flex; align-items:center; justify-content:center; height:36px;">
+        ${preset.icon}
       </div>
       <div style="font-size:13px; font-weight:500;">${label !== preset.labelKey ? label : preset.label}</div>
     `;
@@ -6620,7 +6673,7 @@ function renderPropsForm(obj) {
   const isText = obj.type === 'i-text' || obj.type === 'textbox';
   const isImage = obj.type === 'image';
   const isRect = obj.type === 'rect';
-  const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle' || obj.type === 'polygon';
+  const isShape = obj.type === 'rect' || obj.type === 'circle' || obj.type === 'triangle' || obj.type === 'polygon' || obj.elementType === 'arrow' || obj.elementType === 'star';
   const isHtml = obj.elementType === 'html';
   const is3D = isHtml && obj.meta && obj.meta.role === '3d';
   const opacity = obj.opacity ?? 1;
@@ -6732,6 +6785,12 @@ function getTypeLabel(type, obj) {
     }
     return t('props.type.customHtml') !== 'props.type.customHtml' ? t('props.type.customHtml') : '自定义 HTML/CSS';
   }
+  if (obj && obj.elementType === 'arrow') {
+    return '箭头';
+  }
+  if (obj && obj.elementType === 'star') {
+    return '五角星';
+  }
   const translated = t('props.type.' + type);
   if (translated !== 'props.type.' + type) return translated;
   const labels = {
@@ -6744,7 +6803,9 @@ function getTypeLabel(type, obj) {
     'triangle': '三角形',
     'polygon': '多边形',
     'path': '路径',
-    'group': '组合'
+    'group': '组合',
+    'arrow': '箭头',
+    'star': '五角星'
   };
   return labels[type] || type || '未知';
 }
@@ -10617,26 +10678,39 @@ var material=new THREE.MeshStandardMaterial({color:${colorJs},metalness:${metaln
 var mesh=new THREE.Mesh(geometry,material);
 scene.add(mesh);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
-function animate(){
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){
 animId=requestAnimationFrame(animate);
-if(autoRotate){mesh.rotation.x+=rotateSpeed;mesh.rotation.y+=rotateSpeed;}
+if(isPaused||document.hidden){lastFrameTime=now;return;}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){mesh.rotation.x+=rotateSpeed*dt*60;mesh.rotation.y+=rotateSpeed*dt*60;}
 renderer.render(scene,camera);
 }
-animate();
+requestAnimationFrame(animate);
 function onResize(){
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
 host.__threeCleanup=function(){
-if(animId)cancelAnimationFrame(animId);
+if(animId){cancelAnimationFrame(animId);animId=null;}
 try{geometry.dispose();material.dispose();renderer.dispose();}catch(e){}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;
 
@@ -10674,26 +10748,39 @@ var mat=new THREE.PointsMaterial({color:${colorJs},size:0.06,transparent:true,op
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
-function animate(){
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){
 animId=requestAnimationFrame(animate);
-if(autoRotate){points.rotation.y+=rotateSpeed;points.rotation.x+=rotateSpeed*0.5;}
+if(isPaused||document.hidden){lastFrameTime=now;return;}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){points.rotation.y+=rotateSpeed*dt*60;points.rotation.x+=rotateSpeed*0.5*dt*60;}
 renderer.render(scene,camera);
 }
-animate();
+requestAnimationFrame(animate);
 function onResize(){
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
 host.__threeCleanup=function(){
-if(animId)cancelAnimationFrame(animId);
+if(animId){cancelAnimationFrame(animId);animId=null;}
 try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;
 
@@ -10753,26 +10840,39 @@ var mat=new THREE.PointsMaterial({size:0.04,vertexColors:true,transparent:true,o
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
-function animate(){
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){
 animId=requestAnimationFrame(animate);
-if(autoRotate){points.rotation.y+=rotateSpeed*0.8;}
+if(isPaused||document.hidden){lastFrameTime=now;return;}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+if(autoRotate){points.rotation.y+=rotateSpeed*0.8*dt*60;}
 renderer.render(scene,camera);
 }
-animate();
+requestAnimationFrame(animate);
 function onResize(){
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
 host.__threeCleanup=function(){
-if(animId)cancelAnimationFrame(animId);
+if(animId){cancelAnimationFrame(animId);animId=null;}
 try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
@@ -10820,8 +10920,15 @@ var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
 var count=0;
-function animate(){
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){
 animId=requestAnimationFrame(animate);
+if(isPaused||document.hidden){lastFrameTime=now;return;}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
 var positions=geo.attributes.position.array;
 var i=0;
 for(var ix=0;ix<AMOUNTX;ix++){
@@ -10831,25 +10938,31 @@ for(var ix=0;ix<AMOUNTX;ix++){
   }
 }
 geo.attributes.position.needsUpdate=true;
-count+=0.05;
-if(autoRotate){points.rotation.y+=rotateSpeed*0.5;}
+count+=0.05*dt*60;
+if(autoRotate){points.rotation.y+=rotateSpeed*0.5*dt*60;}
 renderer.render(scene,camera);
 }
-animate();
+requestAnimationFrame(animate);
 function onResize(){
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
 host.__threeCleanup=function(){
-if(animId)cancelAnimationFrame(animId);
+if(animId){cancelAnimationFrame(animId);animId=null;}
 try{geo.dispose();mat.dispose();renderer.dispose();}catch(e){}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';
@@ -10905,14 +11018,22 @@ var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
 group.add(lines);
 
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
-function animate(){
+var isPaused=false,lastFrameTime=performance.now();
+var FRAME_MIN=1000/60;
+function animate(now){
 animId=requestAnimationFrame(animate);
+if(isPaused||document.hidden){lastFrameTime=now;return;}
+var elapsed=now-lastFrameTime;
+if(elapsed<FRAME_MIN)return;
+lastFrameTime=now-(elapsed%FRAME_MIN);
+var dt=Math.min(elapsed/1000,0.1);
+var timeScale=dt*60;
 var vertexpos=0;
 var pos=geometry.attributes.position.array;
 for(var i=0;i<particles;i++){
-  pos[i*3]+=velocities[i].x;
-  pos[i*3+1]+=velocities[i].y;
-  pos[i*3+2]+=velocities[i].z;
+  pos[i*3]+=velocities[i].x*timeScale;
+  pos[i*3+1]+=velocities[i].y*timeScale;
+  pos[i*3+2]+=velocities[i].z*timeScale;
   if(pos[i*3]<-4||pos[i*3]>4) velocities[i].x*=-1;
   if(pos[i*3+1]<-4||pos[i*3+1]>4) velocities[i].y*=-1;
   if(pos[i*3+2]<-4||pos[i*3+2]>4) velocities[i].z*=-1;
@@ -10940,22 +11061,28 @@ for(var i=0;i<particles;i++){
 lines.geometry.setDrawRange(0,numConnected*2);
 lines.geometry.attributes.position.needsUpdate=true;
 
-if(autoRotate){group.rotation.y+=rotateSpeed;group.rotation.x+=rotateSpeed*0.3;}
+if(autoRotate){group.rotation.y+=rotateSpeed*timeScale;group.rotation.x+=rotateSpeed*0.3*timeScale;}
 renderer.render(scene,camera);
 }
-animate();
+requestAnimationFrame(animate);
 function onResize(){
 var rect=host.getBoundingClientRect();
 var nw=Math.max(1,Math.round(rect.width));
 var nh=Math.max(1,Math.round(rect.height));
-var maxSize=2048;
+var maxSize=1024;
 var r=Math.min(1,maxSize/Math.max(nw,nh));
 nw=Math.round(nw*r);nh=Math.round(nh*r);
 if(nw!==w||nh!==h){w=nw;h=nh;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);}
 }
 host.__threeResize=onResize;
+host.__threePause=function(){
+  if(!isPaused){isPaused=true;if(animId){cancelAnimationFrame(animId);animId=null;}}
+};
+host.__threeResume=function(){
+  if(isPaused){isPaused=false;lastFrameTime=performance.now();if(!animId){animId=requestAnimationFrame(animate);}}
+};
 host.__threeCleanup=function(){
-if(animId)cancelAnimationFrame(animId);
+if(animId){cancelAnimationFrame(animId);animId=null;}
 try{
   geometry.dispose();
   lineGeometry.dispose();
@@ -10963,7 +11090,7 @@ try{
   lineMaterial.dispose();
   renderer.dispose();
 }catch(e){}
-host.__threeResize=null;
+host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;
   return '<div class="three-host" data-uid="' + uid + '" style="width:100%;height:100%;position:relative;overflow:hidden;"><canvas class="three-canvas"></canvas></div><scr' + 'ipt>' + script + '</scr' + 'ipt>';

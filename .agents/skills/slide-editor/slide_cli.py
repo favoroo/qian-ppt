@@ -193,7 +193,7 @@ def normalize_batch_for_agent(operations: list[dict[str, Any]]) -> list[dict[str
             normalize_text_element(elem)
         else:
             require_number_field(elem, "height", index)
-            if elem.get("type") in {"rect", "circle", "triangle", "polygon"}:
+            if elem.get("type") in {"rect", "circle", "triangle", "polygon", "arrow", "star"}:
                 elem.setdefault("fill", "#C5E803")
                 elem.setdefault("stroke", "")
                 elem.setdefault("strokeWidth", 0)
@@ -389,7 +389,7 @@ def is_decor(elem: dict[str, Any]) -> bool:
     elem_id = str(elem.get("id", "")).lower()
     if any(token in elem_id for token in ("bg", "background", "divider", "line", "bar", "accent")):
         return True
-    if elem.get("type") in {"rect", "circle", "triangle", "polygon"}:
+    if elem.get("type") in {"rect", "circle", "triangle", "polygon", "arrow", "star"}:
         fill = str(elem.get("fill", "")).lower()
         opacity = float(elem.get("opacity", 1) or 1)
         stroke_width = float(elem.get("strokeWidth", 0) or 0)
@@ -829,7 +829,7 @@ def validate_slide(slide: dict[str, Any]) -> dict[str, Any]:
             errors.append(warn("duplicate-id", elem, f"元素 id 重复: {elem_id}"))
         seen.add(elem_id)
 
-        if etype not in {"text", "image", "rect", "circle", "triangle", "polygon", "html"}:
+        if etype not in {"text", "image", "rect", "circle", "triangle", "polygon", "html", "arrow", "star"}:
             errors.append(warn("bad-type", elem, f"未知元素类型: {etype}"))
 
         for field in ("x", "y", "width", "height"):
@@ -959,7 +959,7 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
         })
     elif args.type == "image":
         elem.update({"src": args.src, "clipType": args.clip_type or "rect", "rx": args.rx or 0})
-    elif args.type in {"rect", "circle", "triangle", "polygon"}:
+    elif args.type in {"rect", "circle", "triangle", "polygon", "arrow", "star"}:
         elem.update({
             "fill": args.fill or "#C5E803",
             "stroke": getattr(args, "stroke", "") or "",
@@ -2333,7 +2333,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("find", help="按文本、id 或类型定位元素")
     p.add_argument("--text", default="")
     p.add_argument("--id", default="")
-    p.add_argument("--type", choices=["text", "image", "rect", "circle", "triangle", "polygon", "html", "3d"], default="")
+    p.add_argument("--type", choices=["text", "image", "rect", "circle", "triangle", "polygon", "html", "3d", "arrow", "star"], default="")
     p.add_argument("--role", default="", help="按 meta.role 精确匹配，如 title/body/image/placeholder")
     p.add_argument("--near", choices=["top", "bottom", "left", "right", "center", "middle"], default="", help="按画布大致区域过滤")
     p.add_argument("--slide", default="")
@@ -2372,7 +2372,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("add", help="添加元素")
     p.add_argument("slide_id")
-    p.add_argument("--type", required=True, choices=["text", "image", "rect", "circle", "triangle", "polygon", "html", "3d"])
+    p.add_argument("--type", required=True, choices=["text", "image", "rect", "circle", "triangle", "polygon", "html", "3d", "arrow", "star"])
     add_common_element_args(p)
     p.add_argument("--text", default="")
     p.add_argument("--font-size", type=int, default=18)

@@ -49,7 +49,7 @@ LOG_ENABLED = True
 
 # 生产模式开关：True 使用 Waitress WSGI 服务器（适合部署），False 使用 Flask 自带开发服务器
 # 切换为 True 前请先安装依赖：pip install waitress
-PRODUCTION_MODE = False
+PRODUCTION_MODE = True
 
 # 日志配置：按日期落盘 + 异步写入 + 大小轮转（详见 log_config.py）
 from log_config import setup_logging, get_logger
@@ -778,6 +778,45 @@ def unhandled_exception(e):
     return jsonify({"error": "internal server error"}), 500
 
 
+def _regenerate_three_html(slides):
+    """在展示页渲染前，将旧版 3D 元素 HTML 替换为 three_templates 优化版本。"""
+    try:
+        import sys
+        from pathlib import Path
+        editor_path = str(Path(__file__).resolve().parent / '.trae' / 'skills' / 'slide-editor')
+        if editor_path not in sys.path:
+            sys.path.insert(0, editor_path)
+        from three_templates import build_3d_element
+    except Exception:
+        return
+
+    for slide in slides:
+        for elem in slide.get('canvas_elements', []):
+            if elem.get('type') != 'html':
+                continue
+            meta = elem.get('meta') or {}
+            if meta.get('role') != '3d':
+                continue
+            data = meta.get('data')
+            if not isinstance(data, dict):
+                continue
+            try:
+                html = build_3d_element(
+                    geometry=data.get('geometry', 'cube'),
+                    color=data.get('color', '#C5E803'),
+                    auto_rotate=data.get('autoRotate', True),
+                    rotate_speed=data.get('rotateSpeed', 0.01),
+                    metalness=data.get('metalness', 0.4),
+                    roughness=data.get('roughness', 0.4),
+                    wireframe=data.get('wireframe', False),
+                    background=data.get('background', 'transparent'),
+                    uid=meta.get('uid'),
+                )['html']
+                elem['html'] = html
+            except Exception:
+                continue
+
+
 # ============ 页面路由 ============
 
 @app.route('/')
@@ -788,9 +827,11 @@ def index():
     except ValueError:
         return "Invalid workspace id", 400
     clean_data = sanitize_text_in_data(data)
+    slides = clean_data.get('slides', [])
+    _regenerate_three_html(slides)
     return render_template(
         'presentation.html',
-        slides=clean_data.get('slides', []),
+        slides=slides,
         settings=clean_data.get('settings', {}),
         workspace_id=workspace_id
     )

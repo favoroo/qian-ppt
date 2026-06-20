@@ -1454,6 +1454,7 @@
 <div id="deck">
 
 {% for slide in slides %}
+{% set slide_idx = loop.index0 %}
 <section class="slide {{ slide.theme }}" data-animate="{{ slide.animate }}" data-slide-id="{{ slide.id }}" data-layout="{{ slide.layout }}" data-bg-pattern-color="{{ slide.bgPatternColor if slide.bgPatternColor else '' }}">
   <div class="canvas-card"{% if slide.backgroundColor %} style="background:{{ slide.backgroundColor }}"{% endif %}>
     {% if slide.layout and 'SWISS-' in slide.layout %}
@@ -1485,10 +1486,18 @@
       <svg class="canvas-triangle-svg" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};transform:rotate({{ elem.angle | default(0) }}deg)" viewBox="0 0 {{ elem.width | default(180) }} {{ elem.height | default(160) }}" preserveAspectRatio="none">
         <polygon points="{{ (elem.width | default(180)) / 2 }},0 {{ elem.width | default(180) }},{{ elem.height | default(160) }} 0,{{ elem.height | default(160) }}" fill="{{ elem.fill | default('#C5E803') }}" stroke="{{ elem.stroke or 'none' }}" stroke-width="{{ elem.strokeWidth | default(0) }}" vector-effect="non-scaling-stroke"/>
       </svg>
+      {% elif elem.type == 'arrow' %}
+      <svg class="canvas-arrow-svg" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};transform:rotate({{ elem.angle | default(0) }}deg)" viewBox="0 0 180 100" preserveAspectRatio="none">
+        <polygon points="0,30 100,30 100,0 180,50 100,100 100,70 0,70" fill="{{ elem.fill | default('#C5E803') }}" stroke="{{ elem.stroke or 'none' }}" stroke-width="{{ elem.strokeWidth | default(0) }}" vector-effect="non-scaling-stroke"/>
+      </svg>
+      {% elif elem.type == 'star' %}
+      <svg class="canvas-star-svg" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};transform:rotate({{ elem.angle | default(0) }}deg)" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polygon points="50,0 61.8,33.8 97.6,34.5 69.0,56.2 79.4,90.5 50,70 20.6,90.5 31.0,56.2 2.5,34.5 38.2,33.8" fill="{{ elem.fill | default('#C5E803') }}" stroke="{{ elem.stroke or 'none' }}" stroke-width="{{ elem.strokeWidth | default(0) }}" vector-effect="non-scaling-stroke"/>
+      </svg>
       {% elif elem.type == 'polygon' %}
       {{ elem | render_polygon | safe }}
       {% elif elem.type == 'html' %}
-      <div class="canvas-html" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};overflow:hidden;pointer-events:none">
+      <div class="canvas-html" data-slide-idx="{{ slide_idx }}" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};overflow:hidden;pointer-events:none">
         {% if elem.css %}<style>{{ elem.css }}</style>{% endif %}
         {{ elem.html | safe }}
       </div>
@@ -1678,7 +1687,19 @@ if(document.body.classList.contains('canvas-mode')){
 }else{
   startGrid();
 }
-addEventListener('swiss-low-power-change', e=>{e.detail.on ? stopGrid() : startGrid();});
+addEventListener('swiss-low-power-change', e=>{
+  e.detail.on ? stopGrid() : startGrid();
+  document.querySelectorAll('.canvas-html .three-host').forEach(host=>{
+    if(e.detail.on){
+      if(host.__threePause) host.__threePause();
+    } else {
+      const slideEl = host.closest('.canvas-html');
+      if(slideEl && parseInt(slideEl.dataset.slideIdx,10) === idx){
+        if(host.__threeResume) host.__threeResume();
+      }
+    }
+  });
+});
 
 // =============== 导航 ===============
 const deck=document.getElementById('deck');
@@ -1700,6 +1721,35 @@ slides.forEach((s,i)=>{
   nav.appendChild(b);
 });
 
+function setSlideThreePaused(slideIdx, paused){
+  document.querySelectorAll(`.canvas-html[data-slide-idx="${slideIdx}"] .three-host`).forEach(host=>{
+    if(paused){
+      if(host.__threePause) host.__threePause();
+    } else {
+      if(host.__threeResume) host.__threeResume();
+      if(host.__threeResize) host.__threeResize();
+    }
+  });
+}
+
+function updateActiveThreeHosts(activeIdx){
+  document.querySelectorAll('.canvas-html .three-host').forEach(host=>{
+    const slideEl = host.closest('.canvas-html');
+    if(!slideEl) return;
+    const slideIdx = parseInt(slideEl.dataset.slideIdx, 10);
+    if(isNaN(slideIdx)) return;
+    const isActive = slideIdx === activeIdx;
+    if(isActive){
+      slideEl.style.visibility = '';
+      if(host.__threeResume) host.__threeResume();
+      if(host.__threeResize) host.__threeResize();
+    } else {
+      if(host.__threePause) host.__threePause();
+      slideEl.style.visibility = 'hidden';
+    }
+  });
+}
+
 function go(n){
   if(lock)return;
   idx=Math.max(0,Math.min(total-1,n));
@@ -1711,6 +1761,7 @@ function go(n){
   const isDark = el.classList.contains('dark') || el.classList.contains('accent');
   document.body.classList.toggle('dark-bg', isDark);
   darkMode = isDark;
+  updateActiveThreeHosts(idx);
   if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
   lock=true;setTimeout(()=>lock=false,700);
 }
@@ -1750,8 +1801,15 @@ function buildOverview(){
 
 function toggleOverview(){
   overviewOn=!overviewOn;
-  if(overviewOn){buildOverview();ov.style.display='block';}
-  else{ov.style.display='none';}
+  if(overviewOn){
+    buildOverview();ov.style.display='block';
+    document.querySelectorAll('.canvas-html .three-host').forEach(host=>{
+      if(host.__threePause) host.__threePause();
+    });
+  } else {
+    ov.style.display='none';
+    updateActiveThreeHosts(idx);
+  }
 }
 
 addEventListener('keydown',e=>{
