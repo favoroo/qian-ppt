@@ -1479,6 +1479,7 @@
       {% for elem in slide.canvas_elements %}
       {% if elem.type == 'image' %}
       <img class="canvas-image" src="{{ elem.src }}"
+        alt="{{ elem.text | default('') }}"
         style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};transform:rotate({{ elem.angle | default(0) }}deg);{% if elem.clipType == 'circle' %}border-radius:50%;object-fit:cover;{% elif elem.clipType == 'rounded-rect' or (elem.rx and elem.rx > 0) %}border-radius:{{ elem.rx }}px;object-fit:cover;{% endif %}"
         loading="lazy" draggable="false">
       {% elif elem.type == 'text' %}
@@ -1960,7 +1961,7 @@ go(Number.isFinite(initialSlide) ? initialSlide : 0);
   window.addEventListener('keydown', () => { menu.style.display = 'none'; });
 })();
 </script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <script>lucide.createIcons();</script>
 
 <!-- Motion One 动效引擎 -->

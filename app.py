@@ -34,10 +34,11 @@ except ImportError:
     HAS_COMPRESS = False
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
-app.config['DATA_FILE'] = os.path.join('data', 'slides.json')
-app.config['BACKUP_FOLDER'] = os.path.join('data', 'backups')
-app.config['WORKSPACES_FOLDER'] = os.path.join('data', 'workspaces')
+_BASE_DIR = app.root_path
+app.config['UPLOAD_FOLDER'] = os.path.join(_BASE_DIR, 'static', 'uploads')
+app.config['DATA_FILE'] = os.path.join(_BASE_DIR, 'data', 'slides.json')
+app.config['BACKUP_FOLDER'] = os.path.join(_BASE_DIR, 'data', 'backups')
+app.config['WORKSPACES_FOLDER'] = os.path.join(_BASE_DIR, 'data', 'workspaces')
 app.config['WORKSPACES_META_FILE'] = os.path.join(app.config['WORKSPACES_FOLDER'], 'workspaces.json')
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'mp4', 'webm'}
@@ -66,7 +67,7 @@ else:
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['BACKUP_FOLDER'], exist_ok=True)
-os.makedirs(os.path.join('data'), exist_ok=True)
+os.makedirs(os.path.join(_BASE_DIR, 'data'), exist_ok=True)
 os.makedirs(app.config['WORKSPACES_FOLDER'], exist_ok=True)
 
 DEFAULT_WORKSPACE_ID = 'default'
@@ -74,7 +75,7 @@ WORKSPACE_ID_RE = re.compile(r'^[A-Za-z0-9_-]+$')
 BACKUP_KEEP_COUNT = 10
 
 # Slide editor 路径配置（可根据实际目录结构调整）
-SLIDE_EDITOR_PATH = os.path.join('.agents', 'skills', 'slide-editor')
+SLIDE_EDITOR_PATH = os.path.join(_BASE_DIR, '.agents', 'skills', 'slide-editor')
 
 
 class WorkspaceValidationError(ValueError):
@@ -397,10 +398,7 @@ def save_slides(data, workspace_id=None, expected_version=None):
 
     with open(lock_file, 'w') as lf:
         if HAS_FILE_LOCK:
-            try:
-                portalocker.lock(lf, portalocker.LOCK_EX)
-            except Exception as e:
-                logger.warning("获取文件锁失败，降级无锁写入: %s", e)
+            portalocker.lock(lf, portalocker.LOCK_EX)
 
         # 乐观锁校验（在锁内，避免 TOCTOU）
         if expected_version is not None:
