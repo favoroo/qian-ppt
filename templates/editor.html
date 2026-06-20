@@ -803,7 +803,7 @@ body {
 
 /* 属性分组 */
 .props-section {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .props-section-title {
@@ -812,8 +812,8 @@ body {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: .5px;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -821,14 +821,14 @@ body {
 .form-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .form-group {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .form-group label {
@@ -838,7 +838,7 @@ body {
 }
 
 .form-control {
-  padding: 7px 10px;
+  padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 12px;
@@ -857,7 +857,7 @@ body {
 
 textarea.form-control {
   resize: vertical;
-  min-height: 56px;
+  min-height: 48px;
   line-height: 1.5;
 }
 
@@ -908,11 +908,11 @@ select.form-control {
 .layer-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
 }
 
 .layer-btn {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -936,13 +936,13 @@ select.form-control {
 /* 对齐按钮组 */
 .align-buttons {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-top: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-top: 4px;
 }
 
 .align-btn {
-  padding: 6px;
+  padding: 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -961,7 +961,7 @@ select.form-control {
 }
 
 .align-btn .material-symbols-rounded {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 /* 切换按钮组 */
@@ -6877,35 +6877,35 @@ function renderSlideProps() {
   const followThemeText = t('props.placeholder.followTheme');
 
   editor.innerHTML = `
-    <div style="margin-bottom:14px;padding:8px 10px;background:var(--bg-surface);border-radius:var(--radius);font-size:12px;font-weight:600;color:var(--text-secondary);">
+    <div style="margin-bottom:10px;padding:8px 10px;background:var(--bg-surface);border-radius:var(--radius);font-size:12px;font-weight:600;color:var(--text-secondary);">
       ${t('props.type')}: ${t('props.type.slide')}
     </div>
     
     <div class="props-section">
       <div class="props-section-title">${t('props.section.textContent')}</div>
       
-      <div class="form-group" style="margin-bottom: 12px;">
+      <div class="form-group" style="margin-bottom: 8px;">
         <label>${t('props.label.title')}</label>
         <input type="text" class="form-control" value="${escapeHtml(titleVal)}" 
           oninput="updateSlideProp('title', this.value, false)"
           onblur="updateSlideProp('title', this.value, true)">
       </div>
 
-      <div class="form-group" style="margin-bottom: 12px;">
+      <div class="form-group" style="margin-bottom: 8px;">
         <label>${t('props.label.kicker')}</label>
         <input type="text" class="form-control" value="${escapeHtml(kickerVal)}" 
           oninput="updateSlideProp('kicker', this.value, false)"
           onblur="updateSlideProp('kicker', this.value, true)">
       </div>
 
-      <div class="form-group" style="margin-bottom: 12px;">
+      <div class="form-group" style="margin-bottom: 8px;">
         <label>${t('props.label.subtitle')}</label>
         <input type="text" class="form-control" value="${escapeHtml(subtitleVal)}" 
           oninput="updateSlideProp('subtitle', this.value, false)"
           onblur="updateSlideProp('subtitle', this.value, true)">
       </div>
 
-      <div class="form-group" style="margin-bottom: 12px;">
+      <div class="form-group" style="margin-bottom: 8px;">
         <label>${t('props.label.lead')}</label>
         <textarea class="form-control" rows="2" style="resize: vertical; font-family: inherit;"
           oninput="updateSlideProp('lead', this.value, false)"
@@ -6916,7 +6916,7 @@ function renderSlideProps() {
     <div class="props-section">
       <div class="props-section-title">${t('props.section.appearance')}</div>
       
-      <div class="form-row" style="margin-bottom: 12px;">
+      <div class="form-row" style="margin-bottom: 8px;">
         <div class="form-group">
           <label>${t('props.label.layout')}</label>
           <select class="form-control" onchange="applySlideLayout(this.value)">
@@ -6944,7 +6944,7 @@ function renderSlideProps() {
       </div>
 
       ${currentLayout && currentLayout.startsWith('SWISS-') ? `
-      <div class="form-group" style="margin-top: 12px;">
+      <div class="form-group" style="margin-top: 8px;">
         <label style="display: flex; justify-content: space-between; align-items: center;">
           <span>${t('props.label.patternColor')}</span>
           ${slide.bgPatternColor ? `<a href="javascript:void(0)" onclick="applySlidePatternColor('')" style="font-size:11px;color:var(--accent);text-decoration:none;">${t('props.label.resetDefault')}</a>` : ''}
@@ -7061,44 +7061,24 @@ function renderPropsForm(obj) {
 
   editor.innerHTML = `
     <!-- 类型标签 -->
-    <div style="margin-bottom:14px;padding:8px 10px;background:var(--bg-surface);border-radius:var(--radius);font-size:12px;font-weight:600;color:var(--text-secondary);">
+    <div style="margin-bottom:10px;padding:8px 10px;background:var(--bg-surface);border-radius:var(--radius);font-size:12px;font-weight:600;color:var(--text-secondary);">
       ${t('props.type')}: ${getTypeLabel(obj.type, obj)}
     </div>
 
     <!-- 通用属性 位置 & 尺寸 -->
     <div class="props-section">
       <div class="props-section-title">${t('props.section.positionSize')}</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>${t('props.label.x')}</label>
-          <input type="number" class="form-control" id="propX" value="${Math.round(obj.left || 0)}" onchange="applyProp('left', this.value)">
-        </div>
-        <div class="form-group">
-          <label>${t('props.label.y')}</label>
-          <input type="number" class="form-control" id="propY" value="${Math.round(obj.top || 0)}" onchange="applyProp('top', this.value)">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>${t('props.label.width')}</label>
-          <input type="number" class="form-control" id="propW" value="${actualWidth}" min="1" onchange="applyScaleSize('width', this.value)">
-        </div>
-        <div class="form-group">
-          <label>${t('props.label.height')}</label>
-          <input type="number" class="form-control" id="propH" value="${actualHeight}" min="1" onchange="applyScaleSize('height', this.value)">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
+      <div class="form-row" style="align-items: center;">
+        <div class="form-group" style="flex: 0 0 35%;">
           <label>${t('props.label.rotation')}</label>
           <input type="number" class="form-control" id="propAngle" value="${Math.round(obj.angle || 0)}" onchange="applyProp('angle', parseFloat(this.value))">
         </div>
-      </div>
-      <div class="form-group" style="margin-bottom:12px;">
-        <label>${t('props.label.opacity')}</label>
-        <div class="range-group">
-          <input type="range" id="propOpacityRange" min="0" max="1" step="0.05" value="${opacity}" oninput="document.getElementById('propOpacity').textContent=Math.round(parseFloat(this.value)*100)+'%'; applyProp('opacity', parseFloat(this.value))">
-          <span class="range-value" id="propOpacity">${Math.round(opacity * 100)}%</span>
+        <div class="form-group" style="flex: 1;">
+          <label>${t('props.label.opacity')}</label>
+          <div class="range-group">
+            <input type="range" id="propOpacityRange" min="0" max="1" step="0.05" value="${opacity}" oninput="document.getElementById('propOpacity').textContent=Math.round(parseFloat(this.value)*100)+'%'; applyProp('opacity', parseFloat(this.value))">
+            <span class="range-value" id="propOpacity" style="min-width: 36px;">${Math.round(opacity * 100)}%</span>
+          </div>
         </div>
       </div>
       <div class="align-buttons">
@@ -7330,7 +7310,7 @@ function renderTextProps(obj) {
       <div class="props-section">
         <div class="props-section-title">${t('props.section.iconProps')}</div>
         
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.currentIcon')}</label>
           <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
             <div style="width:48px;height:48px;border:1px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;background:var(--bg-surface);">
@@ -7343,7 +7323,7 @@ function renderTextProps(obj) {
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.fontFamily')}</label>
           <select class="form-control" id="propFontFamily" onchange="applyTextProp('fontFamily', this.value)">
             <option value="Material Symbols Rounded" selected>${t('props.font.icon')}</option>
@@ -7354,7 +7334,7 @@ function renderTextProps(obj) {
           </select>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.iconSize')}</label>
           <div class="range-group">
             <input type="range" id="propFontSizeRange" min="16" max="250" value="${fontSizeVal}" oninput="document.getElementById('propFontSize').value=this.value; applyTextProp('fontSize', parseInt(this.value), false)" onchange="applyTextProp('fontSize', parseInt(this.value), true)">
@@ -7362,7 +7342,7 @@ function renderTextProps(obj) {
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.color')}</label>
           <div class="color-input-wrap">
             <input type="color" id="propFill" value="${rgbToHex(fillVal)}" oninput="applyTextProp('fill', this.value, false); document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
@@ -7380,12 +7360,12 @@ function renderTextProps(obj) {
   return `
     <div class="props-section">
       <div class="props-section-title">${t('props.section.textProps')}</div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.textContentInput')}</label>
-        <textarea class="form-control" id="propText" rows="3" onchange="applyTextProp('text', this.value)">${escapeHtml(obj.text || '')}</textarea>
+        <textarea class="form-control" id="propText" rows="2" onchange="applyTextProp('text', this.value)">${escapeHtml(obj.text || '')}</textarea>
       </div>
       
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.font')}</label>
         <select class="form-control" id="propFontFamily" onchange="applyTextProp('fontFamily', this.value)">
           <option value="Inter" ${obj.fontFamily === 'Inter' ? 'selected' : ''}>Inter</option>
@@ -7398,7 +7378,7 @@ function renderTextProps(obj) {
         </select>
       </div>
 
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.fontSize')}</label>
         <div class="range-group">
           <input type="range" id="propFontSizeRange" min="12" max="250" value="${fontSizeVal}" oninput="document.getElementById('propFontSize').value=this.value; applyTextProp('fontSize', parseInt(this.value))">
@@ -7406,7 +7386,7 @@ function renderTextProps(obj) {
         </div>
       </div>
 
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.color')}</label>
         <div class="color-input-wrap">
           <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" oninput="applyTextProp('fill', this.value, false); document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
@@ -7418,7 +7398,7 @@ function renderTextProps(obj) {
         </label>
       </div>
 
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.lineHeight')}</label>
         <div class="range-group">
           <input type="range" id="propLineHeight" min="1" max="3" step="0.1" value="${obj.lineHeight || 1.4}" oninput="document.getElementById('propLineHeightVal').textContent=this.value; applyTextProp('lineHeight', parseFloat(this.value))">
@@ -7426,7 +7406,7 @@ function renderTextProps(obj) {
         </div>
       </div>
 
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.fontWeight')}</label>
         <div class="range-group">
           <input type="range" id="propFontWeightRange" min="100" max="900" step="100" value="${getFontWeightNum(obj.fontWeight)}" oninput="document.getElementById('propFontWeightVal').textContent=getFontWeightLabel(this.value); applyTextProp('fontWeight', parseInt(this.value))">
@@ -7434,25 +7414,26 @@ function renderTextProps(obj) {
         </div>
       </div>
 
-      <div class="form-row" style="margin-bottom:10px;">
-        <div class="form-group" style="flex: 0 0 70px;">
-          <label>${t('props.label.bold')}</label>
-          <div class="toggle-group" style="width: 100%;">
-            <button class="toggle-btn ${boldActive ? 'active' : ''}" id="propBoldBtn" style="flex: 1;" onclick="toggleTextStyle('fontWeight', 'bold', 'normal', this)"><b>B</b></button>
-          </div>
-        </div>
-        <div class="form-group" style="flex: 0 0 70px;">
-          <label>${t('props.label.italic')}</label>
-          <div class="toggle-group" style="width: 100%;">
-            <button class="toggle-btn ${italicActive ? 'active' : ''}" id="propItalicBtn" style="flex: 1;" onclick="toggleTextStyle('fontStyle', 'italic', 'normal', this)"><i>I</i></button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>${t('props.label.align')}</label>
-          <div class="toggle-group" style="width: 100%;">
-            <button class="toggle-btn ${align === 'left' ? 'active' : ''}" style="flex: 1;" onclick="applyTextProp('textAlign','left'); refreshAlignButtons('left')">${t('props.align.left')}</button>
-            <button class="toggle-btn ${align === 'center' ? 'active' : ''}" style="flex: 1;" onclick="applyTextProp('textAlign','center'); refreshAlignButtons('center')">${t('props.align.center')}</button>
-            <button class="toggle-btn ${align === 'right' ? 'active' : ''}" style="flex: 1;" onclick="applyTextProp('textAlign','right'); refreshAlignButtons('right')">${t('props.align.right')}</button>
+      <div class="form-row" style="margin-bottom:6px;">
+        <div class="form-group" style="flex: 1;">
+          <label>${t('props.label.styleAndAlign')}</label>
+          <div class="toggle-group" style="width: 100%; display: flex; gap: 4px;">
+            <button class="toggle-btn ${boldActive ? 'active' : ''}" id="propBoldBtn" style="flex: 1; padding: 4px;" title="${t('props.label.bold')}" onclick="toggleTextStyle('fontWeight', 'bold', 'normal', this)">
+              <span class="material-symbols-rounded" style="font-size:16px;">format_bold</span>
+            </button>
+            <button class="toggle-btn ${italicActive ? 'active' : ''}" id="propItalicBtn" style="flex: 1; padding: 4px;" title="${t('props.label.italic')}" onclick="toggleTextStyle('fontStyle', 'italic', 'normal', this)">
+              <span class="material-symbols-rounded" style="font-size:16px;">format_italic</span>
+            </button>
+            <div style="width: 1px; background: var(--border); margin: 0 2px;"></div>
+            <button class="toggle-btn ${align === 'left' ? 'active' : ''}" style="flex: 1; padding: 4px;" title="${t('props.align.left')}" onclick="applyTextProp('textAlign','left'); refreshAlignButtons('left')">
+              <span class="material-symbols-rounded" style="font-size:16px;">format_align_left</span>
+            </button>
+            <button class="toggle-btn ${align === 'center' ? 'active' : ''}" style="flex: 1; padding: 4px;" title="${t('props.align.center')}" onclick="applyTextProp('textAlign','center'); refreshAlignButtons('center')">
+              <span class="material-symbols-rounded" style="font-size:16px;">format_align_center</span>
+            </button>
+            <button class="toggle-btn ${align === 'right' ? 'active' : ''}" style="flex: 1; padding: 4px;" title="${t('props.align.right')}" onclick="applyTextProp('textAlign','right'); refreshAlignButtons('right')">
+              <span class="material-symbols-rounded" style="font-size:16px;">format_align_right</span>
+            </button>
           </div>
         </div>
       </div>
@@ -7469,11 +7450,11 @@ function renderImageProps(obj) {
   return `
     <div class="props-section">
       <div class="props-section-title">${t('props.section.imageProps')}</div>
-      <div class="form-group" style="margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.imageUrl')}</label>
         <input type="text" class="form-control" value="${escapeHtml(src)}" readonly style="background:var(--bg-surface);color:var(--text-muted);font-size:11px;">
       </div>
-      <div class="form-group" style="margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.clipMask')}</label>
         <select class="form-control" id="propClipType" onchange="applyImageClipType(this.value)">
           <option value="rect" ${clipType === 'rect' ? 'selected' : ''}>${t('props.clip.rect')}</option>
@@ -7481,7 +7462,7 @@ function renderImageProps(obj) {
           <option value="circle" ${clipType === 'circle' ? 'selected' : ''}>${t('props.clip.circle')}</option>
         </select>
       </div>
-      <div class="form-group" id="imageRxGroup" style="margin-bottom:10px; display: ${clipType === 'rounded-rect' ? 'block' : 'none'};">
+      <div class="form-group" id="imageRxGroup" style="margin-bottom:8px; display: ${clipType === 'rounded-rect' ? 'block' : 'none'};">
         <label>${t('props.label.cornerRadius')}</label>
         <div class="range-group">
           <input type="range" id="propRx" min="0" max="100" value="${rx}" oninput="document.getElementById('propRxVal').textContent=this.value+'px'; applyImageRx(parseFloat(this.value));">
@@ -7529,15 +7510,15 @@ function renderHtmlProps(obj) {
     return `
       <div class="props-section">
         <div class="props-section-title">${t('props.section.customHtmlCss')}</div>
-        <button class="btn btn-sm" style="width:100%;margin-bottom:12px;" onclick="decomposeSelectedHtmlElement()">
+        <button class="btn btn-sm" style="width:100%;margin-bottom:8px;" onclick="decomposeSelectedHtmlElement()">
           <span class="material-symbols-rounded" style="font-size:14px;vertical-align:middle;margin-right:4px;">auto_fix_high</span>
           ${t('props.button.decomposeHtml')}
         </button>
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.htmlCode')}</label>
           <textarea class="form-control" id="propHtmlCode" rows="6" style="font-family: 'JetBrains Mono', monospace; font-size:11px; resize:vertical;" onchange="applyHtmlCode(this.value)">${escapeHtml(obj.html || '')}</textarea>
         </div>
-        <div class="form-group" style="margin-bottom:12px;">
+        <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.cssCode')}</label>
           <textarea class="form-control" id="propCssCode" rows="6" style="font-family: 'JetBrains Mono', monospace; font-size:11px; resize:vertical;" onchange="applyCssCode(this.value)">${escapeHtml(obj.css || '')}</textarea>
         </div>
@@ -7567,7 +7548,7 @@ function renderAnimationProps(obj) {
           </div>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${durationLabel !== 'props.label.animationDuration' ? durationLabel : '动画时长'}</label>
         <div class="range-group">
           <input type="range" id="propAnimDuration" min="0.5" max="5" step="0.1" value="${duration}" oninput="document.getElementById('propAnimDurationVal').textContent=this.value+'s'; applyAnimationProp('duration', parseFloat(this.value))">
@@ -12127,7 +12108,7 @@ function render3DProps(obj) {
     <div class="props-section">
       <div class="props-section-title">${sectionTitle !== 'props.section.threeDProps' ? sectionTitle : '3D 属性'}</div>
       ${!isCustom ? `
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${geometryLabel !== 'props.label.geometry' ? geometryLabel : '几何体'}</label>
         <select class="form-control" onchange="apply3DProp('geometry', this.value)">
           ${geometryOptions.map(opt => `<option value="${opt.value}" ${opt.value === geometry ? 'selected' : ''}>${opt.label !== ('threeD.' + opt.value) ? opt.label : opt.value}</option>`).join('')}
@@ -12146,46 +12127,46 @@ function render3DProps(obj) {
           </label>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="prop3DAutoRotate" ${autoRotate ? 'checked' : ''} onchange="apply3DProp('autoRotate', this.checked)">
           ${autoRotateLabel !== 'props.label.autoRotate' ? autoRotateLabel : '自动旋转'}
         </label>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="prop3DFloating" ${floating ? 'checked' : ''} onchange="apply3DProp('floating', this.checked)">
           ${t('props.label.floating') !== 'props.label.floating' ? t('props.label.floating') : '漂浮效果'}
         </label>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="prop3DNeonLight" ${neonLight ? 'checked' : ''} onchange="apply3DProp('neonLight', this.checked)">
           ${t('props.label.neonLight') !== 'props.label.neonLight' ? t('props.label.neonLight') : '炫彩高光'}
         </label>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${rotateSpeedLabel !== 'props.label.rotateSpeed' ? rotateSpeedLabel : '旋转速度'}</label>
         <div class="range-group">
           <input type="range" id="prop3DRotateSpeed" min="0" max="0.1" step="0.001" value="${rotateSpeed}" oninput="document.getElementById('prop3DRotateSpeedVal').textContent=this.value; apply3DProp('rotateSpeed', parseFloat(this.value))">
           <span class="range-value" id="prop3DRotateSpeedVal">${rotateSpeed}</span>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${metalnessLabel !== 'props.label.metalness' ? metalnessLabel : '金属度'}</label>
         <div class="range-group">
           <input type="range" id="prop3DMetalness" min="0" max="1" step="0.05" value="${metalness}" oninput="document.getElementById('prop3DMetalnessVal').textContent=this.value; apply3DProp('metalness', parseFloat(this.value))">
           <span class="range-value" id="prop3DMetalnessVal">${metalness}</span>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label>${roughnessLabel !== 'props.label.roughness' ? roughnessLabel : '粗糙度'}</label>
         <div class="range-group">
           <input type="range" id="prop3DRoughness" min="0" max="1" step="0.05" value="${roughness}" oninput="document.getElementById('prop3DRoughnessVal').textContent=this.value; apply3DProp('roughness', parseFloat(this.value))">
           <span class="range-value" id="prop3DRoughnessVal">${roughness}</span>
         </div>
       </div>
-      <div class="form-group" style="margin-bottom:12px;">
+      <div class="form-group" style="margin-bottom:8px;">
         <label style="display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
           <input type="checkbox" id="prop3DWireframe" ${wireframe ? 'checked' : ''} onchange="apply3DProp('wireframe', this.checked)">
           ${wireframeLabel !== 'props.label.wireframe' ? wireframeLabel : '线框模式'}
