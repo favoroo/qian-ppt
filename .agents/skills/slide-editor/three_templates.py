@@ -77,8 +77,8 @@ DEFAULT_DATA = {
     "color": "#C5E803",
     "autoRotate": True,
     "rotateSpeed": 0.01,
-    "metalness": 0.4,
-    "roughness": 0.4,
+    "metalness": 0.1,
+    "roughness": 0.85,
     "wireframe": False,
     "background": "transparent",
 }
@@ -129,8 +129,8 @@ def generate_three_js_code(data: dict[str, Any], uid: str | None = None) -> str:
     color = data.get("color", "#C5E803")
     auto_rotate = "true" if data.get("autoRotate", True) else "false"
     rotate_speed = float(data.get("rotateSpeed", 0.01))
-    metalness = float(data.get("metalness", 0.4))
-    roughness = float(data.get("roughness", 0.4))
+    metalness = float(data.get("metalness", 0.1))
+    roughness = float(data.get("roughness", 0.85))
     wireframe = "true" if data.get("wireframe", False) else "false"
     background = data.get("background", "transparent")
 
@@ -627,8 +627,8 @@ def build_3d_element(
     color: str = "#C5E803",
     auto_rotate: bool = True,
     rotate_speed: float = 0.01,
-    metalness: float = 0.4,
-    roughness: float = 0.4,
+    metalness: float = 0.1,
+    roughness: float = 0.85,
     wireframe: bool = False,
     background: str = "transparent",
     width: int = 240,

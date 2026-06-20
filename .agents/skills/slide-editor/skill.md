@@ -121,7 +121,7 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
   "image": { "src": "/static/uploads/photo.png", "clipType": "rect|circle|rounded-rect", "rx": 8 },
   "shape": { "type": "rect|circle|triangle", "fill": "#C5E803", "stroke": "", "strokeWidth": 0 },
   "html": { "html": "<div>...</div>", "css": ".box{box-sizing:border-box;height:100%;overflow:hidden}" },
-  "3d": { "type": "html", "meta": { "role": "3d", "component": "cube", "data": { "geometry": "cube", "color": "#C5E803", "autoRotate": true, "rotateSpeed": 0.01, "metalness": 0.4, "roughness": 0.4, "wireframe": false, "background": "transparent" } } }
+  "3d": { "type": "html", "meta": { "role": "3d", "component": "cube", "data": { "geometry": "cube", "color": "#C5E803", "autoRotate": true, "rotateSpeed": 0.01, "metalness": 0.1, "roughness": 0.85, "wireframe": false, "background": "transparent" } } }
 }
 ```
 

@@ -235,6 +235,13 @@
       'props.label.rotation': '旋转',
       'props.label.opacity': '透明度',
 
+      'props.align.left': '左对齐',
+      'props.align.centerH': '水平居中',
+      'props.align.right': '右对齐',
+      'props.align.top': '顶对齐',
+      'props.align.centerV': '垂直居中',
+      'props.align.bottom': '底对齐',
+
       'props.section.layer': '图层',
       'props.layer.duplicate': '复制',
       'props.layer.lock': '锁定',

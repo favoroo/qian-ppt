@@ -4934,7 +4934,7 @@ function hexToRgb(hex) {
   };
 }
 
-function applySlidePatternColor(value) {
+function applySlidePatternColor(value, commit = true) {
   const slide = slidesData.slides.find(s => s.id === selectedSlideId);
   if (!slide) return;
 
@@ -4942,10 +4942,12 @@ function applySlidePatternColor(value) {
   
   // 更新背景样式并重新渲染
   setEditorBgStyle(slide.layout || 'body', slide.theme || 'light');
-  renderSlideList();
-  updatePropsPanel();
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    renderSlideList();
+    updatePropsPanel();
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 function applyObjectLock(obj, locked) {
@@ -6814,8 +6816,8 @@ function renderSlideProps() {
       <div class="form-group">
         <label>${t('props.label.bgColor')}</label>
         <div class="color-input-wrap">
-          <input type="color" id="slideBgColor" value="${rgbToHex(bgColor)}" onchange="applySlideBackground(this.value)">
-          <input type="text" class="form-control color-hex" value="${bgColor}" onchange="applySlideBackground(this.value); document.getElementById('slideBgColor').value=hexToColorInput(this.value);">
+          <input type="color" id="slideBgColor" value="${rgbToHex(bgColor)}" oninput="applySlideBackground(this.value, false); document.getElementById('slideBgColorHex').value=this.value" onchange="applySlideBackground(this.value)">
+          <input type="text" class="form-control color-hex" id="slideBgColorHex" value="${bgColor}" onchange="applySlideBackground(this.value); document.getElementById('slideBgColor').value=hexToColorInput(this.value);">
         </div>
       </div>
 
@@ -6826,8 +6828,8 @@ function renderSlideProps() {
           ${slide.bgPatternColor ? `<a href="javascript:void(0)" onclick="applySlidePatternColor('')" style="font-size:11px;color:var(--accent);text-decoration:none;">${t('props.label.resetDefault')}</a>` : ''}
         </label>
         <div class="color-input-wrap">
-          <input type="color" id="slidePatternColor" value="${slide.bgPatternColor || ((themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a')}" onchange="applySlidePatternColor(this.value)">
-          <input type="text" class="form-control color-hex" value="${slide.bgPatternColor || ''}" placeholder="${followThemeText}" onchange="applySlidePatternColor(this.value); document.getElementById('slidePatternColor').value=this.value || '${(themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a'}';">
+          <input type="color" id="slidePatternColor" value="${slide.bgPatternColor || ((themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a')}" oninput="applySlidePatternColor(this.value, false); document.getElementById('slidePatternColorHex').value=this.value" onchange="applySlidePatternColor(this.value)">
+          <input type="text" class="form-control color-hex" id="slidePatternColorHex" value="${slide.bgPatternColor || ''}" placeholder="${followThemeText}" onchange="applySlidePatternColor(this.value); document.getElementById('slidePatternColor').value=this.value || '${(themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a'}';">
         </div>
       </div>
       ` : ''}
@@ -7221,7 +7223,7 @@ function renderTextProps(obj) {
         <div class="form-group" style="margin-bottom:12px;">
           <label>${t('props.label.color')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" onchange="applyTextProp('fill', this.value)">
+            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" oninput="applyTextProp('fill', this.value, false); document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
             <input type="text" class="form-control color-hex" id="propFillHex" value="${fillVal}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
@@ -7265,7 +7267,7 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:12px;">
         <label>${t('props.label.color')}</label>
         <div class="color-input-wrap">
-          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" onchange="applyTextProp('fill', this.value)">
+          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" oninput="applyTextProp('fill', this.value, false); document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
           <input type="text" class="form-control color-hex" id="propFillHex" value="${obj.fill || '#0a0a0a'}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
         </div>
         <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
@@ -7446,8 +7448,8 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.fillColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" onchange="applyProp('fill', this.value)">
-            <input type="text" class="form-control color-hex" value="${obj.fill || '#C5E803'}" onchange="applyProp('fill', this.value);">
+            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" oninput="applyProp('fill', this.value, false); document.getElementById('propRectFillHex').value=this.value" onchange="applyProp('fill', this.value)">
+            <input type="text" class="form-control color-hex" id="propRectFillHex" value="${obj.fill || '#C5E803'}" onchange="applyProp('fill', this.value); document.getElementById('propRectFill').value=hexToColorInput(this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="propFillThemeLink" ${obj.fillThemeLink ? 'checked' : ''} onchange="toggleFillThemeLink(this.checked)">
@@ -7459,8 +7461,8 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.strokeColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" onchange="applyProp('stroke', this.value)">
-            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value);">
+            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" oninput="applyProp('stroke', this.value, false); document.getElementById('propStrokeHex').value=this.value" onchange="applyProp('stroke', this.value)">
+            <input type="text" class="form-control color-hex" id="propStrokeHex" value="${obj.stroke || ''}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value); document.getElementById('propStroke').value=hexToColorInput(this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
             <input type="checkbox" id="propStrokeThemeLink" ${obj.strokeThemeLink ? 'checked' : ''} onchange="toggleStrokeThemeLink(this.checked)">
@@ -7489,7 +7491,7 @@ function renderShapeProps(obj, showRadius) {
 }
 
 // ============ 属性应用函数 ============
-function applyProp(propName, value) {
+function applyProp(propName, value, commit = true) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
   if (!obj) return;
@@ -7520,8 +7522,10 @@ function applyProp(propName, value) {
 
   obj.setCoords();
   canvas.requestRenderAll();
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 function applyImageClipType(value) {
@@ -7567,7 +7571,7 @@ function applyImageRx(value) {
   scheduleAutoSave();
 }
 
-function applySlideBackground(value) {
+function applySlideBackground(value, commit = true) {
   const slide = slidesData.slides.find(s => s.id === selectedSlideId);
   if (!slide) return;
 
@@ -7581,7 +7585,7 @@ function applySlideBackground(value) {
   setCanvasBackground(slide.backgroundColor);
 
   // If the background darkness changed, adjust existing text/icon elements that use default colors
-  if (canvas && oldIsDark !== newIsDark) {
+  if (commit && canvas && oldIsDark !== newIsDark) {
     const oldDefaultColor = oldIsDark ? '#ffffff' : '#0a0a0a';
     const newDefaultColor = newIsDark ? '#ffffff' : '#0a0a0a';
     
@@ -7602,8 +7606,10 @@ function applySlideBackground(value) {
     }
   }
 
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 function applySlideLayout(value) {
@@ -7647,7 +7653,7 @@ function applyScaleSize(dim, value) {
 }
 
 
-function applyTextProp(propName, value) {
+function applyTextProp(propName, value, commit = true) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
   if (!obj || (obj.type !== 'i-text' && obj.type !== 'textbox')) return;
@@ -7674,8 +7680,10 @@ function applyTextProp(propName, value) {
   obj.setCoords();
   fixIconBoundingBox(obj);
   canvas.requestRenderAll();
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 function toggleTextStyle(propName, activeVal, inactiveVal, btnEl) {
@@ -10912,8 +10920,8 @@ const THREE_D_DEFAULT_DATA = {
   color: '#C5E803',
   autoRotate: true,
   rotateSpeed: 0.01,
-  metalness: 0.4,
-  roughness: 0.4,
+  metalness: 0.1,
+  roughness: 0.85,
   wireframe: false,
   background: 'transparent'
 };
@@ -10943,8 +10951,8 @@ function generateThreeJSCode(data, uid) {
   const color = (data.color || '#C5E803').lstrip ? data.color.lstrip('#') : (data.color || '#C5E803').replace(/^#/, '');
   const autoRotate = data.autoRotate !== false ? 'true' : 'false';
   const rotateSpeed = parseFloat(data.rotateSpeed ?? 0.01);
-  const metalness = parseFloat(data.metalness ?? 0.4);
-  const roughness = parseFloat(data.roughness ?? 0.4);
+  const metalness = parseFloat(data.metalness ?? 0.1);
+  const roughness = parseFloat(data.roughness ?? 0.85);
   const wireframe = data.wireframe ? 'true' : 'false';
   const background = data.background || 'transparent';
 
@@ -11576,8 +11584,8 @@ function render3DProps(obj) {
   const color = data.color || '#C5E803';
   const autoRotate = data.autoRotate !== false;
   const rotateSpeed = data.rotateSpeed ?? 0.01;
-  const metalness = data.metalness ?? 0.4;
-  const roughness = data.roughness ?? 0.4;
+  const metalness = data.metalness ?? 0.1;
+  const roughness = data.roughness ?? 0.85;
   const wireframe = data.wireframe || false;
 
   const isCustom = geometry === 'custom';
