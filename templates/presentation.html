@@ -703,6 +703,17 @@
   .canvas-stage-inner .canvas-html{
     z-index:2;
   }
+  .canvas-stage-inner .canvas-html.is-3d{
+    overflow:visible !important;
+  }
+  .canvas-stage-inner .canvas-html.is-3d .three-host{
+    position:absolute !important;
+    left:-10% !important;
+    top:-10% !important;
+    width:120% !important;
+    height:120% !important;
+    overflow:hidden !important;
+  }
   .canvas-stage-inner .canvas-circle{border-radius:50%}
   .canvas-stage-inner img{
     object-fit:fill;
@@ -1503,7 +1514,8 @@
       {% elif elem.type == 'polygon' %}
       {{ elem | render_polygon | safe }}
       {% elif elem.type == 'html' %}
-      <div class="canvas-html" data-slide-idx="{{ slide_idx }}" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};overflow:hidden;pointer-events:none">
+      {% set is_3d = 'three-host' in (elem.html or '') %}
+      <div class="canvas-html{% if is_3d %} is-3d{% endif %}" data-slide-idx="{{ slide_idx }}" style="left:{{ elem.x }}px;top:{{ elem.y }}px;width:{{ elem.width }}px;height:{{ elem.height }}px;opacity:{{ elem.opacity | default(1) }};{% if not is_3d %}overflow:hidden;{% endif %}pointer-events:none">
         {% if elem.css %}<style>{{ elem.css }}</style>{% endif %}
         {{ elem.html | safe }}
       </div>

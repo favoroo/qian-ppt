@@ -283,17 +283,17 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
-camera.position.set(0,0,5);
+camera.position.set(0,0,4.5);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
 {bg_clear}
 var count=600;
 var positions=new Float32Array(count*3);
-for(var i=0;i<count;i++){{positions[i*3]=(Math.random()-0.5)*4;positions[i*3+1]=(Math.random()-0.5)*4;positions[i*3+2]=(Math.random()-0.5)*4;}}
+for(var i=0;i<count;i++){{positions[i*3]=(Math.random()-0.5)*3.2;positions[i*3+1]=(Math.random()-0.5)*3.2;positions[i*3+2]=(Math.random()-0.5)*3.2;}}
 var geo=new THREE.BufferGeometry();
 geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
-var mat=new THREE.PointsMaterial({{color:{color_js},size:0.06,transparent:true,opacity:0.85}});
+var mat=new THREE.PointsMaterial({{color:{color_js},size:0.05,transparent:true,opacity:0.85}});
 var points=new THREE.Points(geo,mat);
 scene.add(points);
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
@@ -552,7 +552,7 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
-camera.position.set(0,0,9);
+camera.position.set(0,0,11);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
@@ -564,9 +564,9 @@ var geometry=new THREE.BufferGeometry();
 var positions=new Float32Array(particles*3);
 var velocities=[];
 for(var i=0;i<particles;i++){{
-  positions[i*3]=(Math.random()-0.5)*8;
-  positions[i*3+1]=(Math.random()-0.5)*8;
-  positions[i*3+2]=(Math.random()-0.5)*8;
+  positions[i*3]=(Math.random()-0.5)*6.4;
+  positions[i*3+1]=(Math.random()-0.5)*6.4;
+  positions[i*3+2]=(Math.random()-0.5)*6.4;
   velocities.push({{
     x:(Math.random()-0.5)*0.02,
     y:(Math.random()-0.5)*0.02,
@@ -574,7 +574,7 @@ for(var i=0;i<particles;i++){{
   }});
 }}
 geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
-var pMaterial=new THREE.PointsMaterial({{color:{color_js},size:0.1,transparent:true,opacity:0.8}});
+var pMaterial=new THREE.PointsMaterial({{color:{color_js},size:0.08,transparent:true,opacity:0.8}});
 var particleSystem=new THREE.Points(geometry,pMaterial);
 group.add(particleSystem);
 var lineGeometry=new THREE.BufferGeometry();
@@ -583,6 +583,32 @@ lineGeometry.setAttribute('position',new THREE.BufferAttribute(linePositions,3))
 var lineMaterial=new THREE.LineBasicMaterial({{color:{color_js},transparent:true,opacity:0.2}});
 var lines=new THREE.LineSegments(lineGeometry,lineMaterial);
 group.add(lines);
+
+// 自适应缩放：根据包围盒与相机视锥计算安全比例
+(function(){{
+  var box = new THREE.Box3().setFromObject(group);
+  var center = new THREE.Vector3();
+  box.getCenter(center);
+  group.position.sub(center);
+  var size = new THREE.Vector3();
+  box.getSize(size);
+  var halfZ = size.z * 0.5;
+  var halfX = size.x * 0.5;
+  var halfY = size.y * 0.5;
+  var frontDist = camera.position.z - halfZ;
+  if (frontDist > 0.01 && halfX > 0.001 && halfY > 0.001) {{
+    var vFov = camera.fov * Math.PI / 180;
+    var visibleHalfH = frontDist * Math.tan(vFov * 0.5);
+    var visibleHalfW = visibleHalfH * camera.aspect;
+    var scale = Math.min(1, Math.min(
+      visibleHalfW * 0.85 / halfX,
+      visibleHalfH * 0.85 / halfY
+    ));
+    if (scale > 0 && isFinite(scale)) {{
+      group.scale.setScalar(scale);
+    }}
+  }}
+}})();
 
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
 var floating={floating},floatOffset=0;
@@ -602,9 +628,9 @@ for(var i=0;i<particles;i++){{
   pos[i*3]+=velocities[i].x*timeScale;
   pos[i*3+1]+=velocities[i].y*timeScale;
   pos[i*3+2]+=velocities[i].z*timeScale;
-  if(pos[i*3]<-4||pos[i*3]>4) velocities[i].x*=-1;
-  if(pos[i*3+1]<-4||pos[i*3+1]>4) velocities[i].y*=-1;
-  if(pos[i*3+2]<-4||pos[i*3+2]>4) velocities[i].z*=-1;
+  if(pos[i*3]<-3.2||pos[i*3]>3.2) velocities[i].x*=-1;
+  if(pos[i*3+1]<-3.2||pos[i*3+1]>3.2) velocities[i].y*=-1;
+  if(pos[i*3+2]<-3.2||pos[i*3+2]>3.2) velocities[i].z*=-1;
 }}
 geometry.attributes.position.needsUpdate=true;
 
@@ -615,7 +641,7 @@ for(var i=0;i<particles;i++){{
     var dy=pos[i*3+1]-pos[j*3+1];
     var dz=pos[i*3+2]-pos[j*3+2];
     var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
-    if(dist<1.5){{
+    if(dist<1.2){{
       linePositions[vertexpos++]=pos[i*3];
       linePositions[vertexpos++]=pos[i*3+1];
       linePositions[vertexpos++]=pos[i*3+2];
