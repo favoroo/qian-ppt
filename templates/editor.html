@@ -2392,7 +2392,7 @@ select.form-control {
       <button class="toolbar-btn" onclick="openNotificationHistory()" title="查看修改历史记录" data-i18n-title="topbar.historyTitle" style="position: relative; margin-left: auto;">
         <span class="material-symbols-rounded">history</span>
         <span data-i18n="topbar.history">历史记录</span>
-        <span id="historyBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--danger, #ff4d4f); color: white; border-radius: 10px; padding: 2px 6px; font-size: 9px; line-height: 1; font-weight: bold; align-items: center; justify-content: center;"></span>
+        <span id="historyBadge" style="display: none; position: absolute; top: -3px; right: -3px; width: 8px; height: 8px; background: var(--danger, #ff4d4f); border-radius: 50%;"></span>
       </button>
 
       <input type="file" id="imageFileInput" accept="image/*" class="hidden-input" onchange="handleImageUpload(event)">
@@ -2652,6 +2652,7 @@ let canvas = null;
 let autoSaveTimer = null;
 let dragSrcIndex = null;
 let isRestoringHistory = false;
+let isUndoingOrRedoing = false;          // 撤销/重做过程中阻止 selectSlide 重复压栈
 let snapEnabled = true;
 let activeGuideLines = [];
 const SNAP_THRESHOLD = 6;
@@ -4040,6 +4041,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch(e) {}
     selectSlide(restoredId || slidesData.slides[0].id);
+
+    // 确保初始撤销快照已建立（selectSlide→loadSlideToCanvas→pushHistory 已处理，
+    // 但 loadSlideToCanvas 为异步，此处兜底确保栈非空）
+    try { resetHistory(); } catch (e) { console.error('init resetHistory 失败:', e); }
   } else {
     // 如果没有幻灯片，创建一个默认的
     addSlide();
@@ -4850,6 +4855,11 @@ async function loadSlideToCanvas(id) {
 
   // 更新属性面板
   updatePropsPanel();
+
+  // 切换幻灯片后建立撤销检查点（撤销/重做过程中跳过，避免重复压栈）
+  if (!isUndoingOrRedoing) {
+    pushHistory();
+  }
 }
 
 function getThemeBgColor(theme) {
@@ -5964,11 +5974,11 @@ function generateAnimationHtml(type, uid, data) {
 
   switch (type) {
     case 'shimmer-border': {
-      html = `<div class="${cls}"></div>`;
+      html = `<svg class="${cls}" viewBox="0 0 100 100" preserveAspectRatio="none"><rect class="${cls}-path" x="2" y="2" width="96" height="96" rx="4" ry="4" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-dasharray="75 225"/></svg>`;
       css = `
-        .${cls} { position: relative; width: 100%; height: 100%; border-radius: 4px; }
-        .${cls}::before { content: ''; position: absolute; inset: 0; border-radius: 4px; padding: 4px; background: conic-gradient(from 0deg, transparent 0%, ${color} 25%, transparent 50%); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; animation: ${cls}-spin ${duration}s linear infinite; }
-        @keyframes ${cls}-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .${cls} { display: block; width: 100%; height: 100%; }
+        .${cls}-path { animation: ${cls}-flow ${duration}s linear infinite; }
+        @keyframes ${cls}-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -300; } }
       `;
       break;
     }
@@ -6489,7 +6499,14 @@ function normalizeHistoryState(state) {
 }
 
 function historyStateEquals(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
+  if (!a || !b) return false;
+  if (a.slideId !== b.slideId) return false;
+  if (a.backgroundColor !== b.backgroundColor) return false;
+  // 元素数组比较：长度不同直接判定不等；长度相同再比较序列化结果
+  const aLen = (a.elements && a.elements.length) || 0;
+  const bLen = (b.elements && b.elements.length) || 0;
+  if (aLen !== bLen) return false;
+  return JSON.stringify(a.elements) === JSON.stringify(b.elements);
 }
 
 function resetHistory() {
@@ -6524,36 +6541,54 @@ async function undoAction() {
   }
   if (!canvas) return;
 
-  redoStack.push(cloneHistoryState(undoStack.pop()));
-  const prevState = undoStack[undoStack.length - 1];
+  isUndoingOrRedoing = true;
+  try {
+    redoStack.push(cloneHistoryState(undoStack.pop()));
+    const prevState = undoStack[undoStack.length - 1];
 
-  if (prevState && prevState.slideId && prevState.slideId !== selectedSlideId) {
-    selectSlide(prevState.slideId);
+    // 不调用 selectSlide，由 restoreState 统一处理幻灯片切换，避免竞态
+    await restoreState(prevState);
+    updateUndoRedoButtons();
+    scheduleAutoSave();
+  } finally {
+    isUndoingOrRedoing = false;
   }
-
-  await restoreState(prevState);
-  updateUndoRedoButtons();
-  scheduleAutoSave();
 }
 
 async function redoAction() {
   if (redoStack.length === 0 || !canvas) return;
 
-  const nextState = redoStack.pop();
-  undoStack.push(cloneHistoryState(nextState));
+  isUndoingOrRedoing = true;
+  try {
+    const nextState = redoStack.pop();
+    undoStack.push(cloneHistoryState(nextState));
 
-  if (nextState && nextState.slideId && nextState.slideId !== selectedSlideId) {
-    selectSlide(nextState.slideId);
+    // 不调用 selectSlide，由 restoreState 统一处理幻灯片切换，避免竞态
+    await restoreState(nextState);
+    updateUndoRedoButtons();
+    scheduleAutoSave();
+  } finally {
+    isUndoingOrRedoing = false;
   }
-
-  await restoreState(nextState);
-  updateUndoRedoButtons();
-  scheduleAutoSave();
 }
 
 async function restoreState(state) {
   if (!canvas) return;
   const normalizedState = normalizeHistoryState(state);
+
+  // 若快照属于不同幻灯片，切换 selectedSlideId 并更新 UI（不调用 loadSlideToCanvas，避免竞态）
+  if (state && state.slideId && state.slideId !== selectedSlideId) {
+    if (selectedSlideId && canvas) {
+      saveCurrentCanvasToSlide(selectedSlideId);
+      updateSlideThumbnailCache(selectedSlideId);
+    }
+    selectedSlideId = state.slideId;
+    try { sessionStorage.setItem(workspaceStorageKey('editor_slide_id'), state.slideId); } catch(e) {}
+    externalModifiedSlideIds.delete(String(state.slideId));
+    renderSlideList();
+    updateTopbarNotice();
+  }
+
   const slide = slidesData.slides.find(s => s.id === selectedSlideId);
 
   isRestoringHistory = true;
@@ -6576,6 +6611,10 @@ async function restoreState(state) {
     isRestoringHistory = false;
   }
   if (slide) slide.canvas_elements = serializeElements(canvas);
+
+  // 切换幻灯片时需同步编辑器背景样式
+  if (slide) setEditorBgStyle(slide.layout || 'body', slide.theme || 'light');
+
   updatePropsPanel();
 }
 
@@ -8438,8 +8477,8 @@ async function toggleHistoryEntryUndo(entryId) {
         setEditorBgStyle(slide.layout || 'body', slide.theme || 'light');
         updatePropsPanel();
 
-        // 压入当前画布撤销栈
-        pushHistory();
+        // 通知历史撤销/恢复替换了整个 slidesData，需重置撤销栈以清除陈旧快照
+        resetHistory();
 
         if (frame) {
           frame.classList.remove('sync-anim-fade-out');
@@ -10951,6 +10990,13 @@ ${geomCode}
 var material=new THREE.MeshStandardMaterial({color:${colorJs},metalness:${metalness},roughness:${roughness},wireframe:${wireframe}});
 var mesh=new THREE.Mesh(geometry,material);
 scene.add(mesh);
+var wireframeGeom=null,wireframeMat=null;
+if(geometry instanceof THREE.SphereGeometry&&!${wireframe}){
+wireframeGeom=new THREE.SphereGeometry(1.002,24,16);
+wireframeMat=new THREE.MeshBasicMaterial({color:${colorJs},wireframe:true,transparent:true,opacity:0.15});
+var wireframeMesh=new THREE.Mesh(wireframeGeom,wireframeMat);
+mesh.add(wireframeMesh);
+}
 var autoRotate=${autoRotate},rotateSpeed=${rotateSpeed},animId=null;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
@@ -10983,7 +11029,13 @@ host.__threeResume=function(){
 };
 host.__threeCleanup=function(){
 if(animId){cancelAnimationFrame(animId);animId=null;}
-try{geometry.dispose();material.dispose();renderer.dispose();}catch(e){}
+try{
+geometry.dispose();
+material.dispose();
+if(wireframeGeom)wireframeGeom.dispose();
+if(wireframeMat)wireframeMat.dispose();
+renderer.dispose();
+}catch(e){}
 host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 };
 })();`;

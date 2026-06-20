@@ -174,6 +174,13 @@ var d2=new THREE.DirectionalLight(0xffffff,0.3);d2.position.set(-2,-1,-3);scene.
 var material=new THREE.MeshStandardMaterial({{color:{color_js},metalness:{metalness},roughness:{roughness},wireframe:{wireframe}}});
 var mesh=new THREE.Mesh(geometry,material);
 scene.add(mesh);
+var wireframeGeom=null,wireframeMat=null;
+if(geometry instanceof THREE.SphereGeometry&&!{wireframe}){{
+wireframeGeom=new THREE.SphereGeometry(1.002,24,16);
+wireframeMat=new THREE.MeshBasicMaterial({{color:{color_js},wireframe:true,transparent:true,opacity:0.15}});
+var wireframeMesh=new THREE.Mesh(wireframeGeom,wireframeMat);
+mesh.add(wireframeMesh);
+}}
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
 var isPaused=false,lastFrameTime=performance.now();
 var FRAME_MIN=1000/60;
@@ -206,7 +213,13 @@ if(isPaused){{isPaused=false;lastFrameTime=performance.now();if(!animId){{animId
 }};
 host.__threeCleanup=function(){{
 if(animId){{cancelAnimationFrame(animId);animId=null;}}
-try{{geometry.dispose();material.dispose();renderer.dispose();}}catch(e){{}}
+try{{
+geometry.dispose();
+material.dispose();
+if(wireframeGeom)wireframeGeom.dispose();
+if(wireframeMat)wireframeMat.dispose();
+renderer.dispose();
+}}catch(e){{}}
 host.__threeResize=null;host.__threePause=null;host.__threeResume=null;
 }};
 }})();'''
