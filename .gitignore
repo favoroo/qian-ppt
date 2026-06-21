@@ -119,3 +119,6 @@ temp2.html
 append_funcs.txt
 three_grep.txt
 head_editor.html
+
+# WorkBuddy local files (not for git)
+.workbuddy/memory/
