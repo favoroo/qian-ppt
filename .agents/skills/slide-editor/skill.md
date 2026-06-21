@@ -16,7 +16,25 @@ python .agents/skills/slide-editor/slide_cli.py workspace list
 python .agents/skills/slide-editor/slide_cli.py workspace select WORKSPACE_ID
 ```
 
-PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 `\` 行尾续行。大段 JSON/HTML/CSS 必须写入文件。`batch --ops` 永远传普通文件名，例如 `--ops ops.json`，不要写 `@ops.json`；`@file.json` 只用于明确支持该写法的参数，例如组件 `--data @data.json` 或属性值文件。
+PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 `\` 行尾续行。大段 JSON/HTML/CSS 必须写入文件。`batch --ops` 永远传普通文件名，例如 `--ops .slide_assets/ops.json`，不要写 `@ops.json`；`@file.json` 只用于明确支持该写法的参数，例如组件 `--data @.slide_assets/data.json` 或属性值文件。
+
+## 临时资源文件管理
+
+所有手写或生成的 HTML、CSS、3D 自定义代码、batch `ops.json`、组件 `--data` 文件等临时资源，统一放到项目根目录下的 `.slide_assets/` 文件夹中，不要直接创建在根目录或当前工作目录下。
+
+```bash
+# 首次使用前创建目录
+mkdir .slide_assets
+```
+
+规范示例：
+
+- HTML 组件：`--html-file .slide_assets/fire.html`
+- 3D 自定义代码：`--custom-file .slide_assets/my_scene.html`
+- batch 操作文件：`--ops .slide_assets/ops.json`
+- 组件数据文件：`--data @.slide_assets/data.json`
+
+如果 `.slide_assets/` 不存在，Agent 会在首次读取时自动创建。CLI 读取相对路径文件时，会优先尝试在 `.slide_assets/` 中查找；若文件被直接放在项目根目录，CLI 会给出警告建议迁移。
 
 ## 最短工作流
 
@@ -65,9 +83,9 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
 6. **复杂版式用组件或批量**
    ```bash
    python .agents/skills/slide-editor/slide_cli.py component list
-   python .agents/skills/slide-editor/slide_cli.py component add "#0" grid-list --x 60 --y 160 --width 840 --height 260 --data @data.json
-   python .agents/skills/slide-editor/slide_cli.py batch "#0" --ops ops.json --normalize --dry-run
-   python .agents/skills/slide-editor/slide_cli.py batch "#0" --ops ops.json
+   python .agents/skills/slide-editor/slide_cli.py component add "#0" grid-list --x 60 --y 160 --width 840 --height 260 --data @.slide_assets/data.json
+   python .agents/skills/slide-editor/slide_cli.py batch "#0" --ops .slide_assets/ops.json --normalize --dry-run
+   python .agents/skills/slide-editor/slide_cli.py batch "#0" --ops .slide_assets/ops.json
    ```
    一页新增多个元素时优先写 `ops.json` 用 `batch`，减少 API 往返和 token。手写批量文本时先跑 `--normalize --dry-run`，让 CLI 补齐文本高度、行高、字体和默认角色。
 
@@ -103,7 +121,7 @@ PowerShell 5.1 每条命令单独执行，禁止 `&&`、`||`、bash heredoc 和 
 | 上传到占位 | `place SLIDE_ID SLOT_ID file.png` |
 | 上传并自动排布 | `upload-place SLIDE_ID a.png b.png --layout row|grid --auto-place` |
 | 重叠建议/修复 | `fix-overlaps SLIDE_ID`、`fix-overlaps SLIDE_ID --apply` |
-| 批量操作 | `batch SLIDE_ID --ops ops.json` |
+| 批量操作 | `batch SLIDE_ID --ops .slide_assets/ops.json` |
 | 截图对比 | `compare-image SLIDE_ID --reference reference.png --export-current` |
 | 组件 | `component list/render/add` |
 | 校验 | `validate SLIDE_ID` 或 `validate --all` |
@@ -168,7 +186,7 @@ python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry ic
 python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry custom --custom-code "<div class=\"three-host\">...</div><script>...</script>" --auto-place
 
 # 从文件读取自定义 Three.js 场景代码
-python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry custom --custom-file my_scene.html --auto-place
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry custom --custom-file .slide_assets/my_scene.html --auto-place
 ```
 
 自定义代码需要自包含可执行的 Three.js 场景：建议包含容器 `<div>`、`<canvas>` 初始化、`requestAnimationFrame` 动画循环，并复用页面已加载的 `window.THREE`。注意：自定义 3D 元素在展示页仍为自动播放，不支持鼠标/键盘交互；需要交互请在编辑器内测试。
@@ -182,7 +200,7 @@ python .agents/skills/slide-editor/slide_cli.py add "#0" --type 3d --geometry cu
 **高级兜底**：如需完全脱离 3D 元数据机制，也可用 `--type html` + `--html-file` 传入自定义 Three.js 代码并设置 `--meta role=3d`：
 
 ```bash
-python .agents/skills/slide-editor/slide_cli.py add "#0" --type html --html-file my_scene.html --meta role=3d --auto-place
+python .agents/skills/slide-editor/slide_cli.py add "#0" --type html --html-file .slide_assets/my_scene.html --meta role=3d --auto-place
 ```
 
 ## 占位与上传规则
@@ -233,7 +251,7 @@ CLI 会识别这些占位：`meta.role=placeholder|slot|image-slot|text-slot|upl
 1. 先保存参考截图路径，确认目标页和工作区；运行 `overview --warnings` 看当前状态。
 2. 根据参考图估算主体容器：记录参考图尺寸、内容左上角、内容宽度、高度、列分割位置和关键文字基线。
 3. 把参考图主体容器映射到 960x540 画布，先建 header、hero、内容区、侧栏、页脚的骨架，再填文本和形状。
-4. 批量新增前运行 `batch "#0" --ops ops.json --normalize --dry-run`，确认文本 bbox 完整；通过后再执行真实 `batch`。
+4. 批量新增前运行 `batch "#0" --ops .slide_assets/ops.json --normalize --dry-run`，确认文本 bbox 完整；通过后再执行真实 `batch`。
 5. 每轮调整后运行 `validate`、`export-image` 和 `compare-image "#0" --reference reference.png --export-current`，用内容边界偏移和像素差异判断是否继续微调。
 6. 不用 ASCII 预览作为最终依据；ASCII 只用于快速定位元素，最终以导出图和参考图对比为准。
 
@@ -247,7 +265,7 @@ CLI 会识别这些占位：`meta.role=placeholder|slot|image-slot|text-slot|upl
 
 ## Batch JSON
 
-`batch` 推荐顶层使用 `operations`，也兼容直接传数组。动作字段是 `action`，元素类型写在 `element.type`。PowerShell 中命令写 `--ops ops.json`，不要写 `--ops @ops.json`；CLI 虽兼容误写的 `@` 前缀，但规范流程仍使用普通文件名。
+`batch` 推荐顶层使用 `operations`，也兼容直接传数组。动作字段是 `action`，元素类型写在 `element.type`。PowerShell 中命令写 `--ops .slide_assets/ops.json`，不要写 `--ops @ops.json`；CLI 虽兼容误写的 `@` 前缀，但规范流程仍使用普通文件名。
 
 ```json
 {

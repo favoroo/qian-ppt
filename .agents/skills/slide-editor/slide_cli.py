@@ -37,6 +37,16 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+ASSETS_DIR_NAME = os.environ.get("SLIDE_ASSETS_DIR", ".slide_assets")
+
+
+def assets_dir() -> Path:
+    """返回临时资源文件推荐目录，默认项目根目录下 .slide_assets。"""
+    path = project_root() / ASSETS_DIR_NAME
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def session_path() -> Path:
     """返回 CLI 本地会话配置路径。"""
     return project_root() / ".slide_cli_session.json"
@@ -887,15 +897,37 @@ def parse_value(value: str) -> Any:
             return value
 
 
-def read_text_file(path_text: str) -> str:
-    """读取文本文件内容，支持 ~ 和环境变量。"""
+def read_text_file(path_text: str, *, warn_root: bool = True) -> str:
+    """读取文本文件内容，支持 ~ 和环境变量。
+
+    相对路径会按以下顺序查找：当前工作目录 -> .slide_assets/ -> 项目根目录。
+    若文件最终被定位在项目根目录或当前工作目录根目录，会提示建议迁移到 .slide_assets/。
+    """
     expanded = os.path.expandvars(os.path.expanduser(path_text))
     candidate = Path(expanded)
-    if not candidate.is_absolute():
-        candidate = (Path.cwd() / candidate).resolve()
-    if not candidate.exists():
-        fail(f"文件不存在: {path_text} (解析为 {candidate})")
-    return candidate.read_text(encoding="utf-8")
+    if candidate.is_absolute():
+        resolved = candidate.resolve()
+    else:
+        # 依次尝试 cwd、assets 目录、项目根目录
+        candidates = [
+            (Path.cwd() / candidate).resolve(),
+            (assets_dir() / candidate).resolve(),
+            (project_root() / candidate).resolve(),
+        ]
+        resolved = next((p for p in candidates if p.exists()), candidates[0])
+    if not resolved.exists():
+        fail(f"文件不存在: {path_text} (解析为 {resolved})")
+    if warn_root:
+        cwd_root = Path.cwd().resolve()
+        proj_root = project_root().resolve()
+        parent = resolved.parent.resolve()
+        if parent in {cwd_root, proj_root}:
+            print(
+                f"Warning: 文件 {resolved.name} 直接放在 {parent}，"
+                f"建议移动到 {assets_dir()} 以保持目录整洁。",
+                file=sys.stderr,
+            )
+    return resolved.read_text(encoding="utf-8")
 
 
 def parse_properties(props: list[str] | None) -> dict[str, Any]:
@@ -978,10 +1010,7 @@ def build_element(args: argparse.Namespace) -> dict[str, Any]:
             if args.custom_code:
                 custom_code = args.custom_code
             elif args.custom_file:
-                custom_path = Path(os.path.expandvars(os.path.expanduser(args.custom_file)))
-                if not custom_path.exists():
-                    fail(f"自定义 3D 场景文件不存在: {args.custom_file}")
-                custom_code = custom_path.read_text(encoding="utf-8")
+                custom_code = read_text_file(args.custom_file)
             if not custom_code:
                 fail("--geometry custom 时必须提供 --custom-code 或 --custom-file")
         three_elem = build_3d_element(
@@ -2272,6 +2301,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="EVKIT2 幻灯片 Agent 编辑工具")
     parser.add_argument("--base", default=DEFAULT_BASE, help="API 基地址，默认 http://127.0.0.1:5001")
     parser.add_argument("--workspace", default=default_workspace(), help="目标工作区 ID，默认读取 SLIDE_WORKSPACE、workspace select 或 default")
+    parser.add_argument("--assets-dir", default=ASSETS_DIR_NAME, help="临时资源文件默认目录，默认读取 SLIDE_ASSETS_DIR 或 .slide_assets")
     parser.add_argument("--timeout", type=int, default=15, help="请求超时秒数")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -2589,6 +2619,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_parser().parse_args()
+    # 允许通过命令行覆盖临时资源目录
+    global ASSETS_DIR_NAME
+    if getattr(args, "assets_dir", None):
+        ASSETS_DIR_NAME = args.assets_dir
     resolve_slide_targets(args)
     if hasattr(args, "slide_id") and not getattr(args, "slide_id", None) and not getattr(args, "all", False):
         fail("请提供 slide_id，或使用 --slide-index 选择幻灯片")
