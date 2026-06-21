@@ -122,3 +122,6 @@ head_editor.html
 
 # WorkBuddy local files (not for git)
 .workbuddy/memory/
+.qoder/rules/cn.md
+plan.md
+fire.html
