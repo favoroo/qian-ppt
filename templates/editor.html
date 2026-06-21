@@ -827,6 +827,24 @@ body {
   margin-bottom: 6px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.props-section-title::after {
+  content: '▾';
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform .2s ease;
+  margin-left: 8px;
+}
+.props-section.collapsed > .props-section-title::after {
+  transform: rotate(-90deg);
+}
+.props-section.collapsed > :not(.props-section-title) {
+  display: none;
 }
 
 /* 表单控件 */
@@ -2230,9 +2248,106 @@ select.form-control {
     filter: blur(0);
   }
 }
+
+/* 按钮 loading 态 */
+.btn-loading { position: relative; pointer-events: none; color: transparent !important; }
+.btn-loading > * { visibility: hidden; }
+.btn-loading::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: btn-spin .6s linear infinite;
+  visibility: visible;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* 缩放快捷倍率按钮 */
+.zoom-presets { display: flex; gap: 2px; margin-left: 6px; }
+.zoom-preset-btn {
+  min-width: 34px; height: 22px; padding: 0 6px;
+  border: 1px solid var(--border); background: var(--bg-surface);
+  color: var(--text-secondary); font-size: 11px; cursor: pointer;
+  border-radius: 3px; transition: var(--transition); line-height: 1;
+}
+.zoom-preset-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-focus); }
+.zoom-preset-btn:active { transform: scale(0.96); }
+
+/* 初始加载骨架屏 */
+.loading-skeleton {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg); display: flex; flex-direction: column;
+  transition: opacity .3s ease;
+}
+.loading-skeleton.hidden { opacity: 0; pointer-events: none; }
+.sk-topbar { height: 52px; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+.sk-main { flex: 1; display: flex; gap: 1px; background: var(--border); }
+.sk-sidebar { width: 200px; background: var(--bg-surface); }
+.sk-canvas { flex: 1; background: var(--bg-canvas-area); }
+.sk-props { width: 280px; background: var(--bg-surface); }
+.sk-statusbar { height: 28px; background: var(--bg-surface); border-top: 1px solid var(--border); }
+.sk-topbar, .sk-sidebar, .sk-canvas, .sk-props, .sk-statusbar {
+  position: relative; overflow: hidden;
+}
+.sk-topbar::before, .sk-sidebar::before, .sk-canvas::before, .sk-props::before, .sk-statusbar::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 快捷键帮助面板 */
+.keyboard-help-modal {
+  background: var(--bg); border-radius: 8px; box-shadow: var(--shadow-lg);
+  width: 560px; max-width: 92vw; max-height: 80vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.keyboard-help-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.keyboard-help-header h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+.keyboard-help-close {
+  border: none; background: transparent; cursor: pointer; padding: 4px;
+  color: var(--text-muted); border-radius: 4px; transition: var(--transition);
+  display: flex; align-items: center;
+}
+.keyboard-help-close:hover { background: var(--bg-hover); color: var(--text); }
+.keyboard-help-body { padding: 12px 18px 18px; overflow-y: auto; }
+.kb-group { margin-bottom: 14px; }
+.kb-group-title {
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px;
+}
+.kb-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 0; font-size: 13px;
+}
+.kb-item-desc { color: var(--text); }
+.kb-keys { display: flex; gap: 4px; align-items: center; }
+.kbd {
+  display: inline-block; padding: 2px 7px; min-width: 22px; text-align: center;
+  background: var(--bg-surface); border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: 4px; font-size: 11px; font-family: ui-monospace, monospace;
+  color: var(--text); line-height: 1.4;
+}
+.kb-plus { color: var(--text-muted); font-size: 11px; }
 </style>
 </head>
 <body>
+
+<!-- 初始加载骨架屏 -->
+<div id="loadingSkeleton" class="loading-skeleton">
+  <div class="sk-topbar"></div>
+  <div class="sk-main">
+    <div class="sk-sidebar"></div>
+    <div class="sk-canvas"></div>
+    <div class="sk-props"></div>
+  </div>
+  <div class="sk-statusbar"></div>
+</div>
 
 <!-- 顶部导航栏 -->
 <div class="topbar">
@@ -2308,15 +2423,15 @@ select.form-control {
       <span id="saveStatusDot"></span>
       <span id="saveStatusText" data-i18n="status.ready">就绪</span>
     </span>
-    <button class="btn btn-accent" onclick="saveNow()" title="保存 (Ctrl+S)" data-i18n-title="topbar.saveTitle">
+    <button class="btn btn-accent" id="saveBtn" onclick="saveNow()" title="保存 (Ctrl+S)" data-i18n-title="topbar.saveTitle">
       <span class="material-symbols-rounded">save</span>
       <span data-i18n="topbar.save">保存</span>
     </button>
-    <button class="btn" onclick="document.getElementById('importDataFileInput').click()" title="导入新版 HTML" data-i18n-title="topbar.importTitle">
+    <button class="btn" id="importBtn" onclick="document.getElementById('importDataFileInput').click()" title="导入新版 HTML" data-i18n-title="topbar.importTitle">
       <span class="material-symbols-rounded">upload_file</span>
       <span data-i18n="topbar.import">导入数据</span>
     </button>
-    <button class="btn" onclick="exportDeck()">
+    <button class="btn" id="exportBtn" onclick="exportDeck()">
       <span class="material-symbols-rounded">download</span>
       <span data-i18n="topbar.exportHtml">导出 HTML</span>
     </button>
@@ -2467,6 +2582,19 @@ select.form-control {
 </div>
 
 <div id="contextMenu" class="context-menu" style="display:none;"></div>
+
+<!-- 快捷键帮助面板 -->
+<div id="keyboardHelpOverlay" class="dialog-overlay" style="display:none;">
+  <div class="keyboard-help-modal">
+    <div class="keyboard-help-header">
+      <h3 data-i18n="keyboard.title">快捷键</h3>
+      <button class="keyboard-help-close" onclick="closeKeyboardHelpModal()" title="关闭" data-i18n-title="toast.closeTitle">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <div class="keyboard-help-body" id="keyboardHelpBody"></div>
+  </div>
+</div>
 
 <script>
 // ============ 自定义弹窗美化实现 ============
@@ -4178,6 +4306,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.fonts.ready.then(refreshCanvasTextMetrics);
     document.fonts.addEventListener('loadingdone', refreshCanvasTextMetrics);
   }
+
+  // 隐藏初始加载骨架屏
+  const skel = document.getElementById('loadingSkeleton');
+  if (skel) {
+    skel.classList.add('hidden');
+    setTimeout(() => { if (skel.parentNode) skel.parentNode.removeChild(skel); }, 350);
+  }
 });
 
 // ============ Fabric.js 画布初始化 ============
@@ -4759,6 +4894,11 @@ function resetZoomToFit() {
     isAutoZoom = true;
     autoFitCanvas();
   }
+}
+
+function setZoomPreset(ratio) {
+  isAutoZoom = false;
+  setCanvasZoom(ratio);
 }
 
 // ============ 幻灯片列表渲染 ============
@@ -6539,6 +6679,22 @@ function setupKeyboardShortcuts() {
     const activeObj = canvas ? canvas.getActiveObject() : null;
     const isTextObject = activeObj && (activeObj.type === 'i-text' || activeObj.type === 'textbox');
 
+    // Esc 关闭快捷键帮助面板
+    if (e.key === 'Escape') {
+      const helpOverlay = document.getElementById('keyboardHelpOverlay');
+      if (helpOverlay && helpOverlay.style.display !== 'none') {
+        closeKeyboardHelpModal();
+        return;
+      }
+    }
+
+    // ? 键（Shift+/）打开快捷键帮助面板（非表单输入态）
+    if (!isFormField && !isFabricTextarea && e.shiftKey && e.key === '?') {
+      e.preventDefault();
+      showKeyboardHelpModal();
+      return;
+    }
+
     // Ctrl+S 保存当前数据，并阻止浏览器打开"保存网页"对话框
     if (ctrlOrCmd && key === 's') {
       e.preventDefault();
@@ -6694,6 +6850,80 @@ function setupKeyboardShortcuts() {
       return;
     }
   });
+}
+
+// ============ 快捷键帮助面板 ============
+function showKeyboardHelpModal() {
+  const overlay = document.getElementById('keyboardHelpOverlay');
+  if (!overlay) return;
+  renderKeyboardHelp();
+  overlay.style.display = 'flex';
+}
+
+function closeKeyboardHelpModal() {
+  const overlay = document.getElementById('keyboardHelpOverlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function renderKeyboardHelp() {
+  const body = document.getElementById('keyboardHelpBody');
+  if (!body) return;
+
+  const groups = [
+    {
+      title: t('keyboard.category.edit'),
+      items: [
+        { keys: ['Ctrl', 'S'], desc: t('keyboard.shortcut.save') },
+        { keys: ['Ctrl', 'Z'], desc: t('keyboard.shortcut.undo') },
+        { keys: ['Ctrl', 'Y'], desc: t('keyboard.shortcut.redo') },
+        { keys: ['Ctrl', 'A'], desc: t('keyboard.shortcut.selectAll') },
+        { keys: ['Ctrl', 'C'], desc: t('keyboard.shortcut.copy') },
+        { keys: ['Ctrl', 'V'], desc: t('keyboard.shortcut.paste') },
+        { keys: ['Ctrl', 'D'], desc: t('keyboard.shortcut.duplicate') },
+        { keys: ['Delete'], desc: t('keyboard.shortcut.delete') },
+        { keys: ['Ctrl', 'B'], desc: t('keyboard.shortcut.bold') },
+        { keys: ['Ctrl', 'I'], desc: t('keyboard.shortcut.italic') }
+      ]
+    },
+    {
+      title: t('keyboard.category.canvas'),
+      items: [
+        { keys: ['Ctrl', 'G'], desc: t('keyboard.shortcut.group') },
+        { keys: ['↑', '↓', '←', '→'], desc: t('keyboard.shortcut.move') },
+        { keys: ['Shift', '↑↓←→'], desc: t('keyboard.shortcut.moveLarge') }
+      ]
+    },
+    {
+      title: t('keyboard.category.layer'),
+      items: [
+        { keys: ['Ctrl', ']'], desc: t('keyboard.shortcut.layerUp') },
+        { keys: ['Ctrl', '['], desc: t('keyboard.shortcut.layerDown') },
+        { keys: ['Shift', 'Ctrl', ']'], desc: t('keyboard.shortcut.layerTop') },
+        { keys: ['Shift', 'Ctrl', '['], desc: t('keyboard.shortcut.layerBottom') }
+      ]
+    },
+    {
+      title: t('keyboard.category.other'),
+      items: [
+        { keys: ['?'], desc: t('keyboard.shortcut.help') },
+        { keys: ['Esc'], desc: t('keyboard.shortcut.close') }
+      ]
+    }
+  ];
+
+  let html = '';
+  groups.forEach(group => {
+    html += `<div class="kb-group"><div class="kb-group-title">${group.title}</div>`;
+    group.items.forEach(item => {
+      const keysHtml = item.keys.map((k, i) => {
+        const sep = i > 0 ? '<span class="kb-plus">+</span>' : '';
+        return sep + `<span class="kbd">${k}</span>`;
+      }).join('');
+      html += `<div class="kb-item"><span class="kb-item-desc">${item.desc}</span><span class="kb-keys">${keysHtml}</span></div>`;
+    });
+    html += '</div>';
+  });
+  body.innerHTML = html;
 }
 
 // ============ 剪贴板复制/粘贴 ============
@@ -7081,6 +7311,7 @@ function updatePropsPanel() {
     emptyEl.style.display = 'none';
     editorEl.style.display = 'block';
     renderSlideProps();
+    bindPropsSectionToggle();
     return;
   }
 
@@ -7088,6 +7319,32 @@ function updatePropsPanel() {
   editorEl.style.display = 'block';
 
   renderPropsForm(activeObj);
+  bindPropsSectionToggle();
+}
+
+// 属性面板 section 折叠/展开
+function bindPropsSectionToggle() {
+  const titles = document.querySelectorAll('#propsEditor .props-section-title');
+  titles.forEach(title => {
+    const section = title.parentElement;
+    if (!section || !section.classList.contains('props-section')) return;
+    const key = 'propsCollapsed:' + (title.textContent || '').trim().replace(/\s+/g, '').slice(0, 40);
+    try {
+      if (sessionStorage.getItem(key) === '1') {
+        section.classList.add('collapsed');
+      }
+    } catch (e) {}
+    title.addEventListener('click', function() {
+      section.classList.toggle('collapsed');
+      try {
+        if (section.classList.contains('collapsed')) {
+          sessionStorage.setItem(key, '1');
+        } else {
+          sessionStorage.removeItem(key);
+        }
+      } catch (e) {}
+    });
+  });
 }
 
 function renderSlideProps() {
@@ -7184,7 +7441,7 @@ function renderSlideProps() {
       <div class="form-group">
         <label>${t('props.label.bgColor')}</label>
         <div class="color-input-wrap">
-          <input type="color" id="slideBgColor" value="${rgbToHex(bgColor)}" oninput="document.getElementById('slideBgColorHex').value=this.value" onchange="applySlideBackground(this.value)">
+          <input type="color" id="slideBgColor" value="${rgbToHex(bgColor)}" oninput="document.getElementById('slideBgColorHex').value=this.value; applySlideBackground(this.value, false)" onchange="applySlideBackground(this.value); pushHistory(); scheduleAutoSave();">
           <input type="text" class="form-control color-hex" id="slideBgColorHex" value="${bgColor}" onchange="applySlideBackground(this.value); document.getElementById('slideBgColor').value=hexToColorInput(this.value);">
         </div>
       </div>
@@ -7196,7 +7453,7 @@ function renderSlideProps() {
           ${slide.bgPatternColor ? `<a href="javascript:void(0)" onclick="applySlidePatternColor('')" style="font-size:11px;color:var(--accent);text-decoration:none;">${t('props.label.resetDefault')}</a>` : ''}
         </label>
         <div class="color-input-wrap">
-          <input type="color" id="slidePatternColor" value="${slide.bgPatternColor || ((themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a')}" oninput="document.getElementById('slidePatternColorHex').value=this.value" onchange="applySlidePatternColor(this.value)">
+          <input type="color" id="slidePatternColor" value="${slide.bgPatternColor || ((themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a')}" oninput="document.getElementById('slidePatternColorHex').value=this.value; applySlidePatternColor(this.value, false)" onchange="applySlidePatternColor(this.value)">
           <input type="text" class="form-control color-hex" id="slidePatternColorHex" value="${slide.bgPatternColor || ''}" placeholder="${followThemeText}" onchange="applySlidePatternColor(this.value); document.getElementById('slidePatternColor').value=this.value || '${(themeVal && themeVal.includes('dark')) ? '#ffffff' : '#0a0a0a'}';">
         </div>
       </div>
@@ -7591,7 +7848,7 @@ function renderTextProps(obj) {
         <div class="form-group" style="margin-bottom:8px;">
           <label>${t('props.label.color')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" oninput="document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
+            <input type="color" id="propFill" value="${rgbToHex(fillVal)}" oninput="document.getElementById('propFillHex').value=this.value; applyTextProp('fill', this.value, false)" onchange="applyTextProp('fill', this.value); pushHistory(); scheduleAutoSave();">
             <input type="text" class="form-control color-hex" id="propFillHex" value="${fillVal}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
@@ -7635,7 +7892,7 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.color')}</label>
         <div class="color-input-wrap">
-          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" oninput="document.getElementById('propFillHex').value=this.value" onchange="applyTextProp('fill', this.value)">
+          <input type="color" id="propFill" value="${rgbToHex(obj.fill || '#0a0a0a')}" oninput="document.getElementById('propFillHex').value=this.value; applyTextProp('fill', this.value, false)" onchange="applyTextProp('fill', this.value); pushHistory(); scheduleAutoSave();">
           <input type="text" class="form-control color-hex" id="propFillHex" value="${obj.fill || '#0a0a0a'}" onchange="applyTextProp('fill', this.value); document.getElementById('propFill').value=hexToColorInput(this.value);">
         </div>
         <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
@@ -7789,7 +8046,7 @@ function renderAnimationProps(obj) {
         <div class="form-group">
           <label>${colorLabel !== 'props.label.animationColor' ? colorLabel : '颜色'}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propAnimColor" value="${rgbToHex(color)}" onchange="applyAnimationProp('color', this.value)">
+            <input type="color" id="propAnimColor" value="${rgbToHex(color)}" onchange="applyAnimationProp('color', this.value); pushHistory(); scheduleAutoSave();">
             <input type="text" class="form-control color-hex" value="${color}" onchange="applyAnimationProp('color', this.value)">
           </div>
         </div>
@@ -7817,7 +8074,7 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.fillColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" oninput="document.getElementById('propRectFillHex').value=this.value" onchange="applyProp('fill', this.value)">
+            <input type="color" id="propRectFill" value="${rgbToHex(obj.fill || '#C5E803')}" oninput="document.getElementById('propRectFillHex').value=this.value; applyProp('fill', this.value, false)" onchange="applyProp('fill', this.value); pushHistory(); scheduleAutoSave();">
             <input type="text" class="form-control color-hex" id="propRectFillHex" value="${obj.fill === 'transparent' ? 'transparent' : (obj.fill || '#C5E803')}" onchange="applyProp('fill', this.value); document.getElementById('propRectFill').value=hexToColorInput(this.value);">
           </div>
           <div class="color-options-row">
@@ -7836,7 +8093,7 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.strokeColor')}</label>
           <div class="color-input-wrap">
-            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" oninput="document.getElementById('propStrokeHex').value=this.value" onchange="applyProp('stroke', this.value)">
+            <input type="color" id="propStroke" value="${rgbToHex(obj.stroke || '#000000')}" oninput="document.getElementById('propStrokeHex').value=this.value; applyProp('stroke', this.value, false)" onchange="applyProp('stroke', this.value); pushHistory(); scheduleAutoSave();">
             <input type="text" class="form-control color-hex" id="propStrokeHex" value="${!obj.stroke || obj.stroke === 'transparent' ? 'transparent' : obj.stroke}" placeholder="${t('props.label.strokeNone')}" onchange="applyProp('stroke', this.value); document.getElementById('propStroke').value=hexToColorInput(this.value);">
           </div>
           <div class="color-options-row">
@@ -8307,6 +8564,8 @@ async function saveNow() {
 
   updateSaveStatus('saving');
   isSaving = true;
+  const saveBtnEl = document.getElementById('saveBtn');
+  if (saveBtnEl) saveBtnEl.classList.add('btn-loading');
 
   try {
     const resp = await fetch(apiUrl('/api/slides'), {
@@ -8328,6 +8587,7 @@ async function saveNow() {
       originalSlidesData = JSON.parse(JSON.stringify(slidesData));
       locallyModifiedSlideIds.clear();
       updateSaveStatus('saved');
+      updateLastSavedTime();
     } else if (resp.status === 409) {
       // 乐观锁冲突：解析服务端最新数据并尝试合并，然后向上抛错让调用方处理
       updateSaveStatus('error');
@@ -8355,6 +8615,7 @@ async function saveNow() {
     throw e;
   } finally {
     isSaving = false;
+    if (saveBtnEl) saveBtnEl.classList.remove('btn-loading');
   }
 }
 
@@ -8398,6 +8659,8 @@ async function openExportFolder() {
 }
 
 async function exportDeck() {
+  const exportBtnEl = document.getElementById('exportBtn');
+  if (exportBtnEl) exportBtnEl.classList.add('btn-loading');
   try {
     // 先保存当前画布
     if (selectedSlideId && canvas) {
@@ -8423,6 +8686,8 @@ async function exportDeck() {
     }
   } catch (e) {
     alert(t('export.failedWithMessage', { message: e.message }));
+  } finally {
+    if (exportBtnEl) exportBtnEl.classList.remove('btn-loading');
   }
 }
 
@@ -8431,6 +8696,8 @@ async function handleDataImportFile(event) {
   const file = input.files && input.files[0];
   if (!file) return;
 
+  const importBtnEl = document.getElementById('importBtn');
+  if (importBtnEl) importBtnEl.classList.add('btn-loading');
   try {
     const text = await file.text();
     const importData = parseImportFile(file, text);
@@ -8464,6 +8731,7 @@ async function handleDataImportFile(event) {
     alert(t('import.failed', { message: e.message }));
   } finally {
     input.value = '';
+    if (importBtnEl) importBtnEl.classList.remove('btn-loading');
   }
 }
 
@@ -8616,11 +8884,45 @@ async function exportSlideAsImage() {
 }
 
 // ============ 底部状态栏更新 ============
+let lastSavedAt = null;
+let saveInfoRefreshTimer = null;
+
+function updateLastSavedTime() {
+  lastSavedAt = new Date();
+  refreshSaveInfoDisplay();
+  if (!saveInfoRefreshTimer) {
+    saveInfoRefreshTimer = setInterval(refreshSaveInfoDisplay, 30000);
+  }
+}
+
+function refreshSaveInfoDisplay() {
+  const el = document.getElementById('statusSaveInfo');
+  if (!el) return;
+  const total = slidesData && slidesData.slides ? slidesData.slides.length : 0;
+  if (!lastSavedAt) {
+    el.textContent = t('status.autoSaved', { total });
+    return;
+  }
+  const diffMs = Date.now() - lastSavedAt.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 10) {
+    const hh = String(lastSavedAt.getHours()).padStart(2, '0');
+    const mm = String(lastSavedAt.getMinutes()).padStart(2, '0');
+    const ss = String(lastSavedAt.getSeconds()).padStart(2, '0');
+    el.textContent = t('status.savedAt', { time: `${hh}:${mm}:${ss}`, total });
+  } else if (diffSec < 60) {
+    el.textContent = t('status.savedSecondsAgo', { seconds: diffSec, total });
+  } else {
+    const diffMin = Math.floor(diffSec / 60);
+    el.textContent = t('status.savedMinutesAgo', { minutes: diffMin, total });
+  }
+}
+
 function updateStatusBar() {
   const total = slidesData.slides.length;
   const currentIdx = selectedSlideId ? slidesData.slides.findIndex(s => s.id === selectedSlideId) + 1 : 0;
 
-  document.getElementById('statusSaveInfo').textContent = t('status.autoSaved', { total });
+  refreshSaveInfoDisplay();
   document.getElementById('statusPageInfo').textContent = t('status.pageInfo', { current: currentIdx, total });
 
   // 更新预览按钮链接到当前页面
@@ -9962,7 +10264,7 @@ async function addToComponentLibrary() {
       await fetchComponents();
     } catch (e) {
       console.error(e);
-      alert('保存组件失败: ' + (e.message || String(e)));
+      alert(t('component.saveFailed', { message: e.message || String(e) }));
     } finally {
       if (tempGroupCreated && targetObj) {
         targetObj.toActiveSelection();
@@ -10300,7 +10602,7 @@ async function decomposeSelectedHtmlElement() {
 
   const objects = await decomposeHtmlObjectToFabricObjects(activeObj);
   if (objects.length === 0) {
-    alert('没有识别到可拆分的文本、图片或形状元素。');
+    alert(t('component.splitNoElement'));
     return;
   }
 
@@ -12442,7 +12744,7 @@ function render3DProps(obj) {
         <div class="form-group">
           <label>${colorLabel !== 'props.label.fillColor' ? colorLabel : '颜色'}</label>
           <div class="color-input-wrap">
-            <input type="color" id="prop3DColor" value="${color}" onchange="apply3DProp('color', this.value)">
+            <input type="color" id="prop3DColor" value="${color}" oninput="apply3DProp('color', this.value, false)" onchange="apply3DProp('color', this.value); pushHistory(); scheduleAutoSave();">
             <input type="text" class="form-control color-hex" value="${color}" onchange="apply3DProp('color', this.value)">
           </div>
           <label style="display:flex; align-items:center; gap:6px; margin-top:6px; font-size:11px; cursor:pointer; user-select:none;">
@@ -12507,7 +12809,7 @@ function render3DProps(obj) {
   `;
 }
 
-function apply3DProp(propName, value) {
+function apply3DProp(propName, value, commit = true) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
   if (!obj || !obj.meta || obj.meta.role !== '3d') return;
@@ -12531,11 +12833,13 @@ function apply3DProp(propName, value) {
   // 重建 DOM 覆盖层中的 3D 场景
   rebuild3DScene(obj);
   
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
-function applyAnimationProp(propName, value) {
+function applyAnimationProp(propName, value, commit = true) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
   if (!obj || !obj.meta || obj.meta.role !== 'animation') return;
@@ -12556,8 +12860,10 @@ function applyAnimationProp(propName, value) {
 
   rebuild3DScene(obj);
   canvas.requestRenderAll();
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 let _editing3DObj = null;
