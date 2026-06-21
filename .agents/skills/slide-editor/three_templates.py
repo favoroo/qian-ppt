@@ -283,7 +283,7 @@ if(!canvas){{canvas=document.createElement('canvas');canvas.className='three-can
 var w=host.clientWidth||240,h=host.clientHeight||240;
 var scene=new THREE.Scene();
 var camera=new THREE.PerspectiveCamera(50,w/h,0.1,1000);
-camera.position.set(0,0,4.5);
+camera.position.set(0,0,5.5);
 var renderer=new THREE.WebGLRenderer({{canvas:canvas,antialias:true,alpha:{bg_alpha}}});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(w,h,false);
@@ -295,7 +295,36 @@ var geo=new THREE.BufferGeometry();
 geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
 var mat=new THREE.PointsMaterial({{color:{color_js},size:0.05,transparent:true,opacity:0.85}});
 var points=new THREE.Points(geo,mat);
-scene.add(points);
+var group=new THREE.Group();
+group.add(points);
+scene.add(group);
+
+// 自适应缩放：根据包围盒与相机视锥计算安全比例
+(function(){{
+  var box = new THREE.Box3().setFromObject(group);
+  var center = new THREE.Vector3();
+  box.getCenter(center);
+  group.position.sub(center);
+  var size = new THREE.Vector3();
+  box.getSize(size);
+  var halfZ = size.z * 0.5;
+  var halfX = size.x * 0.5;
+  var halfY = size.y * 0.5;
+  var frontDist = camera.position.z - halfZ;
+  if (frontDist > 0.01 && halfX > 0.001 && halfY > 0.001) {{
+    var vFov = camera.fov * Math.PI / 180;
+    var visibleHalfH = frontDist * Math.tan(vFov * 0.5);
+    var visibleHalfW = visibleHalfH * camera.aspect;
+    var scale = Math.min(1, Math.min(
+      visibleHalfW * 0.85 / halfX,
+      visibleHalfH * 0.85 / halfY
+    ));
+    if (scale > 0 && isFinite(scale)) {{
+      group.scale.setScalar(scale);
+    }}
+  }}
+}})();
+
 var autoRotate={auto_rotate},rotateSpeed={rotate_speed},animId=null;
 var floating={floating},floatOffset=0;
 var isPaused=false,lastFrameTime=performance.now();
@@ -308,8 +337,8 @@ if(elapsed<FRAME_MIN)return;
 lastFrameTime=now-(elapsed%FRAME_MIN);
 var dt=Math.min(elapsed/1000,0.1);
 var timeScale=dt*60;
-if(autoRotate){{points.rotation.y+=rotateSpeed*timeScale;points.rotation.x+=rotateSpeed*0.5*timeScale;}}
-if(floating){{floatOffset+=0.025*timeScale;points.position.y=Math.sin(floatOffset)*0.2;}}
+if(autoRotate){{group.rotation.y+=rotateSpeed*timeScale;group.rotation.x+=rotateSpeed*0.5*timeScale;}}
+if(floating){{floatOffset+=0.025*timeScale;group.position.y=Math.sin(floatOffset)*0.2;}}
 renderer.render(scene,camera);
 }}
 requestAnimationFrame(animate);

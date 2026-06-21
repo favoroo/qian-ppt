@@ -4359,7 +4359,8 @@ function toggleSnapEnabled() {
 
 // ============ 图标元素长按拖拽 ============
 let iconDragPressTimer = null;
-const ICON_LONG_PRESS_DELAY = 200; // 长按阈值（毫秒）
+let iconDragStartPos = null;        // mousedown 时保存的初始位置，供 object:moving 回退用
+const ICON_LONG_PRESS_DELAY = 200;  // 长按阈值（毫秒）
 
 // ============ Ctrl + 拖动复制 ============
 function handleCanvasMouseDown(e) {
@@ -4367,18 +4368,17 @@ function handleCanvasMouseDown(e) {
 
   const activeObj = canvas.getActiveObject();
 
-  // 图标元素长按拖拽：单击仅选中，长按后才允许拖拽
+  // 图标元素长按拖拽：记录初始位置 + 启动定时器
   if (activeObj && activeObj.fontFamily === 'Material Symbols Rounded' && !activeObj.isEditing) {
     if (iconDragPressTimer) {
       clearTimeout(iconDragPressTimer);
       iconDragPressTimer = null;
     }
-    activeObj.set({ lockMovementX: true, lockMovementY: true });
+    // 保存当前作为拖拽起始位置（供 handleObjectMoving 回退用）
+    iconDragStartPos = { left: activeObj.left, top: activeObj.top };
+    // 定时器到期后清空起始位置标记，允许拖拽
     iconDragPressTimer = setTimeout(() => {
-      if (activeObj && canvas.contains(activeObj)) {
-        activeObj.set({ lockMovementX: false, lockMovementY: false });
-        canvas.requestRenderAll();
-      }
+      iconDragStartPos = null;
       iconDragPressTimer = null;
     }, ICON_LONG_PRESS_DELAY);
   }
@@ -4426,15 +4426,12 @@ function handleCanvasMouseDown(e) {
 
 function handleCanvasMouseUp(e) {
   clearGuideLines();
-  // 图标元素长按拖拽：单击时（定时器未到期）取消定时器，保持锁定状态
+  // 图标元素长按拖拽：单击时清除定时器和位置记录（保持当前位置不变）
   if (iconDragPressTimer) {
     clearTimeout(iconDragPressTimer);
     iconDragPressTimer = null;
-    const activeObj = canvas.getActiveObject();
-    if (activeObj && activeObj.fontFamily === 'Material Symbols Rounded' && !activeObj.isEditing) {
-      activeObj.set({ lockMovementX: false, lockMovementY: false });
-    }
   }
+  iconDragStartPos = null;
   // 重置复制状态
   dragCloneSource = null;
   dragCloneInitialPosition = null;
@@ -4485,6 +4482,14 @@ function performDragClone() {
 function handleObjectMoving(e) {
   const target = e && e.target;
   if (!target) return;
+
+  // 图标元素长按拦截：未到长按时间则强制回退到初始位置，阻止拖拽
+  if (iconDragStartPos && target.fontFamily === 'Material Symbols Rounded') {
+    target.set({ left: iconDragStartPos.left, top: iconDragStartPos.top });
+    target.setCoords();
+    canvas.requestRenderAll();
+    return;
+  }
 
   // 检查是否需要进行 Ctrl + 拖动复制
   const isCtrl = isCtrlPressed || (e && e.e && (e.e.ctrlKey || e.e.metaKey));
@@ -7166,7 +7171,7 @@ function renderSlideProps() {
         </div>
         <div class="form-group">
           <label>${t('props.label.theme')}</label>
-          <select class="form-control" onchange="updateSlideProp('theme', this.value, true)">
+          <select class="form-control" onchange="updateSlideProp('theme', this.value, false)">
             <option value="light" ${themeVal === 'light' ? 'selected' : ''}>${t('props.theme.light')}</option>
             <option value="dark" ${themeVal === 'dark' ? 'selected' : ''}>${t('props.theme.dark')}</option>
             <option value="hero light" ${themeVal === 'hero light' ? 'selected' : ''}>${t('props.theme.heroLight')}</option>
@@ -7317,7 +7322,7 @@ function renderPropsForm(obj) {
         <div class="form-group" style="flex: 1;">
           <label>${t('props.label.opacity')}</label>
           <div class="range-group">
-            <input type="range" id="propOpacityRange" min="0" max="1" step="0.05" value="${opacity}" oninput="document.getElementById('propOpacity').textContent=Math.round(parseFloat(this.value)*100)+'%'; applyProp('opacity', parseFloat(this.value))">
+            <input type="range" id="propOpacityRange" min="0" max="1" step="0.05" value="${opacity}" oninput="document.getElementById('propOpacity').textContent=Math.round(parseFloat(this.value)*100)+'%'; applyProp('opacity', parseFloat(this.value), false)" onchange="applyProp('opacity', parseFloat(this.value), true)">
             <span class="range-value" id="propOpacity" style="min-width: 36px;">${Math.round(opacity * 100)}%</span>
           </div>
         </div>
@@ -7622,7 +7627,7 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.fontSize')}</label>
         <div class="range-group">
-          <input type="range" id="propFontSizeRange" min="12" max="250" value="${fontSizeVal}" oninput="document.getElementById('propFontSize').value=this.value; applyTextProp('fontSize', parseInt(this.value))">
+          <input type="range" id="propFontSizeRange" min="12" max="250" value="${fontSizeVal}" oninput="document.getElementById('propFontSize').value=this.value; applyTextProp('fontSize', parseInt(this.value), false)" onchange="applyTextProp('fontSize', parseInt(this.value), true)">
           <input type="number" class="form-control" id="propFontSize" value="${fontSizeVal}" min="12" max="250" style="width:64px;text-align:center;" onchange="applyTextProp('fontSize', parseInt(this.value)); document.getElementById('propFontSizeRange').value=this.value;">
         </div>
       </div>
@@ -7642,7 +7647,7 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.lineHeight')}</label>
         <div class="range-group">
-          <input type="range" id="propLineHeight" min="1" max="3" step="0.1" value="${obj.lineHeight || 1.4}" oninput="document.getElementById('propLineHeightVal').textContent=this.value; applyTextProp('lineHeight', parseFloat(this.value))">
+          <input type="range" id="propLineHeight" min="1" max="3" step="0.1" value="${obj.lineHeight || 1.4}" oninput="document.getElementById('propLineHeightVal').textContent=this.value; applyTextProp('lineHeight', parseFloat(this.value), false)" onchange="applyTextProp('lineHeight', parseFloat(this.value), true)">
           <span class="range-value" id="propLineHeightVal">${obj.lineHeight || 1.4}</span>
         </div>
       </div>
@@ -7650,7 +7655,7 @@ function renderTextProps(obj) {
       <div class="form-group" style="margin-bottom:8px;">
         <label>${t('props.label.fontWeight')}</label>
         <div class="range-group">
-          <input type="range" id="propFontWeightRange" min="100" max="900" step="100" value="${getFontWeightNum(obj.fontWeight)}" oninput="document.getElementById('propFontWeightVal').textContent=getFontWeightLabel(this.value); applyTextProp('fontWeight', parseInt(this.value))">
+          <input type="range" id="propFontWeightRange" min="100" max="900" step="100" value="${getFontWeightNum(obj.fontWeight)}" oninput="document.getElementById('propFontWeightVal').textContent=getFontWeightLabel(this.value); applyTextProp('fontWeight', parseInt(this.value), false)" onchange="applyTextProp('fontWeight', parseInt(this.value), true)">
           <span class="range-value" id="propFontWeightVal" style="min-width:64px;text-align:right;">${getFontWeightLabel(obj.fontWeight)}</span>
         </div>
       </div>
@@ -7706,7 +7711,7 @@ function renderImageProps(obj) {
       <div class="form-group" id="imageRxGroup" style="margin-bottom:8px; display: ${clipType === 'rounded-rect' ? 'block' : 'none'};">
         <label>${t('props.label.cornerRadius')}</label>
         <div class="range-group">
-          <input type="range" id="propRx" min="0" max="100" value="${rx}" oninput="document.getElementById('propRxVal').textContent=this.value+'px'; applyImageRx(parseFloat(this.value));">
+          <input type="range" id="propRx" min="0" max="100" value="${rx}" oninput="document.getElementById('propRxVal').textContent=this.value+'px'; applyImageRx(parseFloat(this.value), false)" onchange="applyImageRx(parseFloat(this.value), true)">
           <span class="range-value" id="propRxVal">${rx}px</span>
         </div>
       </div>
@@ -7848,7 +7853,7 @@ function renderShapeProps(obj, showRadius) {
         <div class="form-group">
           <label>${t('props.label.strokeWidth')}</label>
           <div class="range-group">
-            <input type="range" id="propStrokeWidth" min="0" max="20" value="${strokeWidth}" oninput="document.getElementById('propStrokeWidthVal').textContent=this.value+'px'; applyProp('strokeWidth', parseFloat(this.value));">
+            <input type="range" id="propStrokeWidth" min="0" max="20" value="${strokeWidth}" oninput="document.getElementById('propStrokeWidthVal').textContent=this.value+'px'; applyProp('strokeWidth', parseFloat(this.value), false)" onchange="applyProp('strokeWidth', parseFloat(this.value), true)">
             <span class="range-value" id="propStrokeWidthVal">${strokeWidth}px</span>
           </div>
         </div>
@@ -7857,7 +7862,7 @@ function renderShapeProps(obj, showRadius) {
       <div class="form-group">
         <label>${t('props.label.shapeCornerRadius')}</label>
         <div class="range-group">
-          <input type="range" id="propRectRx" min="0" max="50" value="${rx}" oninput="document.getElementById('propRectRxVal').textContent=this.value+'px'; applyProp('rx', parseFloat(this.value)); applyProp('ry', parseFloat(this.value));">
+          <input type="range" id="propRectRx" min="0" max="50" value="${rx}" oninput="document.getElementById('propRectRxVal').textContent=this.value+'px'; applyProp('rx', parseFloat(this.value), false); applyProp('ry', parseFloat(this.value), false)" onchange="applyProp('rx', parseFloat(this.value), true); applyProp('ry', parseFloat(this.value), true)">
           <span class="range-value" id="propRectRxVal">${rx}px</span>
         </div>
       </div>
@@ -7969,7 +7974,7 @@ function applyImageClipType(value) {
   scheduleAutoSave();
 }
 
-function applyImageRx(value) {
+function applyImageRx(value, commit = true) {
   if (!canvas) return;
   const obj = canvas.getActiveObject();
   if (!obj || obj.type !== 'image') return;
@@ -7978,8 +7983,10 @@ function applyImageRx(value) {
   obj.set('ry', value);
   updateImageClipPath(obj);
   canvas.requestRenderAll();
-  pushHistory();
-  scheduleAutoSave();
+  if (commit) {
+    pushHistory();
+    scheduleAutoSave();
+  }
 }
 
 function applySlideBackground(value, commit = true) {
