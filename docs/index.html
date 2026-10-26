@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QIAN-PPT — 人机协同的幻灯片工具</title>
+<meta name="description" content="Agent 生成初稿，你随时接手精修。QIAN-PPT 是一套开源的人机协同 PPT 工作流：AI 做擅长的批量生成，人做擅长的审美判断。">
+<meta property="og:title" content="QIAN-PPT — 人机协同的幻灯片工具">
+<meta property="og:description" content="Agent 生成 × 人工自由编辑 —— 开源的新一代 PPT 工作流">
+<meta property="og:image" content="assets/editor.png">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23C5E803'/%3E%3Ccircle cx='29' cy='29' r='15' fill='none' stroke='%230a0a0a' stroke-width='7'/%3E%3Cline x1='39' y1='39' x2='52' y2='52' stroke='%230a0a0a' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fafaf8;
+  --ink:#0a0a0a;
+  --accent:#C5E803;
+  --hair:rgba(10,10,10,.14);
+  --muted:rgba(10,10,10,.58);
+  --card:#ffffff;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --sans:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--accent);color:var(--ink)}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.wrap{width:min(1200px,92vw);margin-inline:auto}
+.mono{font-family:var(--mono)}
+
+/* ---------- reveal on scroll ---------- */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s var(--ease),transform .8s var(--ease);transition-delay:var(--d,0s)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- nav ---------- */
+.nav{
+  position:fixed;inset:0 0 auto 0;z-index:50;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  background:rgba(250,250,248,.82);
+  border-bottom:1px solid transparent;
+  transition:border-color .3s;
+}
+.nav.scrolled{border-bottom-color:var(--hair)}
+.nav-inner{
+  width:min(1200px,92vw);margin-inline:auto;
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.04em}
+.brand-mark{
+  width:26px;height:26px;border-radius:7px;background:var(--accent);
+  border:1.5px solid var(--ink);
+  display:grid;place-items:center;
+  font-family:var(--sans);font-weight:900;font-size:14px;line-height:1;
+}
+.nav-links{display:flex;align-items:center;gap:28px;font-family:var(--mono);font-size:13.5px;letter-spacing:.02em}
+.nav-links a{position:relative;padding:4px 0;opacity:.75;transition:opacity .25s}
+.nav-links a:hover{opacity:1}
+.nav-links a::after{
+  content:"";position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--accent);transition:width .3s var(--ease);
+}
+.nav-links a:hover::after{width:100%}
+.nav-gh{display:flex;align-items:center;gap:7px}
+.nav-gh svg{width:17px;height:17px}
+
+/* ---------- hero ---------- */
+.hero{padding:calc(64px + clamp(48px,8vw,96px)) 0 clamp(48px,7vw,88px)}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;
+  border:1px solid var(--ink);border-radius:999px;
+  padding:7px 16px;margin-bottom:clamp(24px,3.5vw,40px);
+}
+.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--accent);border:1px solid var(--ink);display:inline-block}
+.hero h1{
+  font-size:clamp(2.9rem,8.2vw,7rem);
+  font-weight:900;line-height:1.08;letter-spacing:-.01em;
+  margin-bottom:clamp(24px,3vw,36px);
+}
+.h1-line{display:block;overflow:hidden}
+.h1-line>span{display:inline-block;transform:translateY(112%);animation:rise .9s var(--ease) forwards}
+.h1-line:nth-child(2)>span{animation-delay:.12s}
+@keyframes rise{to{transform:translateY(0)}}
+.hl{background:var(--accent);padding:0 .1em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.hero-sub{
+  max-width:560px;font-size:clamp(1rem,1.5vw,1.2rem);color:var(--muted);
+  margin-bottom:clamp(28px,3.5vw,40px);
+  opacity:0;animation:fadeup .8s var(--ease) .35s forwards;
+}
+.hero-cta{display:flex;flex-wrap:wrap;gap:14px;opacity:0;animation:fadeup .8s var(--ease) .5s forwards}
+@keyframes fadeup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:14.5px;font-weight:600;letter-spacing:.02em;
+  padding:14px 26px;border:1.5px solid var(--ink);border-radius:10px;
+  transition:background .25s,color .25s,transform .25s var(--ease),box-shadow .25s;
+  cursor:pointer;background:transparent;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0)}
+.btn-fill{background:var(--ink);color:var(--paper)}
+.btn-fill:hover{background:var(--accent);color:var(--ink);box-shadow:0 10px 28px -10px rgba(10,10,10,.35)}
+.btn-line:hover{background:var(--ink);color:var(--paper)}
+.hero-chips{
+  display:flex;flex-wrap:wrap;gap:8px;margin-top:26px;
+  opacity:0;animation:fadeup .8s var(--ease) .62s forwards;
+}
+.chip{
+  font-family:var(--mono);font-size:12px;letter-spacing:.05em;
+  border:1px solid var(--hair);border-radius:999px;padding:5px 13px;color:var(--muted);
+}
+
+/* hero window */
+.hero-window{
+  margin-top:clamp(40px,6vw,72px);
+  opacity:0;animation:fadeup 1s var(--ease) .75s forwards;
+}
+.window{
+  border:1.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#fff;
+  box-shadow:0 40px 90px -40px rgba(10,10,10,.35);
+  animation:float 7s ease-in-out 2s infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.window-bar{
+  display:flex;align-items:center;gap:7px;
+  padding:11px 16px;border-bottom:1px solid var(--hair);background:var(--paper);
+}
+.dot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--ink)}
+.dot.a{background:#FF6B35}.dot.b{background:#FFD500}.dot.c{background:var(--accent)}
+.window-bar .addr{
+  margin-left:12px;flex:1;max-width:340px;
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  border:1px solid var(--hair);border-radius:6px;padding:3px 12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.hero-window img{width:100%}
+
+/* stats */
+.stats{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  border-block:1px solid var(--ink);
+  margin-top:clamp(48px,7vw,88px);
+}
+.stat{
+  padding:clamp(22px,3vw,34px) clamp(16px,2.5vw,30px);
+  border-right:1px solid var(--hair);
+}
+.stat:last-child{border-right:0}
+.stat b{
+  display:block;font-family:var(--mono);font-weight:600;
+  font-size:clamp(1.9rem,3.4vw,2.9rem);line-height:1.1;margin-bottom:6px;
+}
+.stat span{font-size:13.5px;color:var(--muted);letter-spacing:.03em}
+
+/* ---------- marquee ---------- */
+.marquee{
+  background:var(--accent);border-bottom:1.5px solid var(--ink);
+  overflow:hidden;padding:13px 0;user-select:none;
+}
+.marquee-track{display:flex;width:max-content;animation:mq 26s linear infinite}
+.marquee-track span{
+  font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.1em;
+  white-space:nowrap;padding-right:2.4em;
+}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ---------- sections ---------- */
+.section{padding:clamp(72px,11vw,132px) 0}
+.sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:clamp(36px,5vw,60px)}
+.sec-label{font-family:var(--mono);font-size:13px;letter-spacing:.14em;color:var(--muted);white-space:nowrap}
+.sec-label::before{content:"//";color:var(--ink);margin-right:8px;font-weight:600}
+.sec-line{flex:1;height:1px;background:var(--hair)}
+.sec-num{font-family:var(--mono);font-size:13px;color:var(--muted)}
+
+/* philosophy */
+.philo p.big{
+  font-size:clamp(1.7rem,4.1vw,3.4rem);
+  font-weight:800;line-height:1.35;letter-spacing:.01em;
+  max-width:20em;
+}
+.philo p.big em{font-style:normal;background:var(--accent);padding:0 .12em}
+.philo p.small{
+  margin-top:clamp(20px,3vw,32px);max-width:520px;color:var(--muted);
+  font-size:clamp(.95rem,1.3vw,1.08rem);
+}
+
+/* features */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,2vw,22px)}
+.feat{
+  position:relative;background:var(--card);
+  border:1.5px solid var(--hair);border-radius:14px;
+  padding:clamp(26px,3.4vw,42px);
+  transition:transform .35s var(--ease),border-color .35s,box-shadow .35s;
+  overflow:hidden;
+}
+.feat:hover{transform:translateY(-5px);border-color:var(--ink);box-shadow:0 24px 50px -28px rgba(10,10,10,.3)}
+.feat .num{
+  font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.08em;
+  display:inline-block;background:var(--accent);border:1.5px solid var(--ink);
+  border-radius:7px;padding:4px 10px;margin-bottom:clamp(18px,2.4vw,28px);
+}
+.feat h3{font-size:clamp(1.3rem,2.1vw,1.7rem);font-weight:800;margin-bottom:10px;letter-spacing:.01em}
+.feat p{color:var(--muted);font-size:clamp(.92rem,1.25vw,1.02rem);max-width:30em}
+.feat .arrow{
+  position:absolute;top:clamp(22px,3vw,36px);right:clamp(22px,3vw,36px);
+  font-family:var(--mono);font-size:20px;
+  opacity:0;transform:translate(-8px,8px);
+  transition:opacity .3s,transform .35s var(--ease);
+}
+.feat:hover .arrow{opacity:1;transform:none}
+
+/* ---------- showcase ---------- */
+.show-grid{
+  display:grid;grid-template-columns:repeat(12,1fr);
+  gap:clamp(14px,2vw,22px);
+}
+.show-card{
+  position:relative;border:1.5px solid var(--ink);border-radius:14px;
+  overflow:hidden;background:#fff;cursor:pointer;
+  transition:transform .35s var(--ease),box-shadow .35s;
+}
+.show-card:hover{transform:translateY(-5px);box-shadow:0 28px 60px -30px rgba(10,10,10,.4)}
+.show-card .thumb{position:relative;overflow:hidden;background:#0a0a0a}
+.show-live-a{grid-column:span 7}
+.show-live-b{grid-column:span 5}
+.show-live-a .thumb,.show-live-b .thumb{height:clamp(280px,32vw,400px)}
+.show-img{grid-column:span 3}
+.show-img .thumb{height:clamp(170px,17vw,210px)}
+.show-img img{width:100%;height:100%;object-fit:cover;object-position:top;transition:transform .7s var(--ease)}
+.show-card:hover .thumb img{transform:scale(1.04)}
+.preview-frame{position:absolute;inset:0;overflow:hidden}
+.preview-frame iframe{
+  width:1440px;height:900px;border:0;pointer-events:none;
+  transform-origin:0 0;background:#fff;
+}
+.thumb .veil{
+  position:absolute;inset:0;z-index:2;
+  display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;
+  background:linear-gradient(to top,rgba(10,10,10,.28),transparent 42%);
+  opacity:0;transition:opacity .35s;
+}
+.show-card:hover .veil{opacity:1}
+.veil .pill{
+  font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.06em;
+  background:var(--accent);border:1.5px solid var(--ink);border-radius:999px;
+  padding:8px 18px;color:var(--ink);
+}
+.badge-live{
+  position:absolute;top:14px;left:14px;z-index:3;
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.12em;
+  background:var(--ink);color:var(--accent);border-radius:999px;padding:6px 13px;
+}
+.badge-live i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.show-meta{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+  padding:16px 20px;border-top:1px solid var(--hair);background:var(--card);
+}
+.show-meta b{font-size:15.5px;font-weight:700;letter-spacing:.01em}
+.show-meta span{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.04em;text-align:right}
+.show-hint{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.06em}
+
+/* ---------- lightbox ---------- */
+.lb{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:3.5vmin;visibility:hidden}
+.lb.open{visibility:visible}
+.lb-bg{
+  position:absolute;inset:0;background:rgba(10,10,10,.58);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;transition:opacity .35s;
+}
+.lb.open .lb-bg{opacity:1}
+.lb-panel{
+  position:relative;z-index:2;
+  opacity:0;transform:scale(.95) translateY(14px);
+  transition:opacity .4s var(--ease),transform .45s var(--ease);
+}
+.lb.open .lb-panel{opacity:1;transform:none}
+.lb-panel iframe{
+  width:min(1300px,93vw);height:min(80vh,820px);
+  border:1.5px solid var(--ink);border-radius:12px;background:#fff;display:block;
+}
+.lb-panel img{
+  max-width:min(1300px,93vw);max-height:80vh;width:auto;height:auto;
+  border:1.5px solid var(--ink);border-radius:12px;background:#fff;
+}
+.lb-cap{
+  position:absolute;left:2px;bottom:-34px;
+  font-family:var(--mono);font-size:13px;color:rgba(250,250,248,.85);letter-spacing:.05em;
+}
+.lb-close{
+  position:absolute;top:-14px;right:-14px;z-index:3;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--accent);border:1.5px solid var(--ink);
+  font-size:20px;font-family:var(--mono);cursor:pointer;
+  display:grid;place-items:center;line-height:1;
+  transition:transform .25s var(--ease);
+}
+.lb-close:hover{transform:rotate(90deg)}
+body.lb-lock{overflow:hidden}
+
+/* ---------- footer ---------- */
+footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overflow:hidden}
+.foot-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:28px}
+.foot-brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-weight:600;font-size:16px}
+.foot-links{display:flex;gap:26px;font-family:var(--mono);font-size:13.5px}
+.foot-links a{opacity:.7;transition:opacity .25s}
+.foot-links a:hover{opacity:1}
+.foot-note{
+  margin-top:26px;font-family:var(--mono);font-size:12.5px;color:var(--muted);letter-spacing:.05em;
+  display:flex;flex-wrap:wrap;gap:8px 26px;
+}
+.foot-mark{
+  font-weight:900;text-align:center;line-height:.82;letter-spacing:-.02em;
+  font-size:clamp(64px,15.5vw,228px);
+  margin-top:clamp(28px,4vw,48px);
+  color:#efeee9;white-space:nowrap;user-select:none;
+  transform:translateY(.12em);
+}
+@supports(-webkit-text-stroke:1px black){
+  .foot-mark{color:transparent;-webkit-text-stroke:1.5px rgba(10,10,10,.16)}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .feat-grid{grid-template-columns:1fr}
+  .show-live-a,.show-live-b{grid-column:span 12}
+  .show-img{grid-column:span 6}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat:nth-child(2){border-right:0}
+  .stat:nth-child(1),.stat:nth-child(2){border-bottom:1px solid var(--hair)}
+}
+@media (max-width:640px){
+  .nav-links a:not(.nav-gh){display:none}
+  .show-img{grid-column:span 12}
+  .show-img .thumb{height:200px}
+  .lb-panel iframe{height:72vh}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
+  .h1-line>span{transform:none;animation:none}
+  .hero-sub,.hero-cta,.hero-chips,.hero-window{opacity:1;animation:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= NAV ======================= -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top"><span class="brand-mark">Q</span>QIAN-PPT</a>
+    <nav class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#showcase">样片</a>
+      <a class="nav-gh" href="https://github.com/favoroo/qian-ppt" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ======================= HERO ======================= -->
+<section class="hero wrap">
+  <span class="eyebrow"><i></i>HUMAN × AI · OPEN SOURCE · MIT</span>
+  <h1>
+    <span class="h1-line"><span>人机<span class="hl">协同</span>的</span></span>
+    <span class="h1-line"><span>幻灯片工具</span></span>
+  </h1>
+  <p class="hero-sub">Agent 生成初稿，你随时接手精修 —— 一套开源的新一代 PPT 工作流。</p>
+  <div class="hero-cta">
+    <a class="btn btn-fill" href="https://github.com/favoroo/qian-ppt" target="_blank" rel="noopener">GitHub 仓库 ↗</a>
+    <a class="btn btn-line" href="#showcase">看看样片 ↓</a>
+  </div>
+  <div class="hero-chips">
+    <span class="chip">本地优先</span>
+    <span class="chip">无需数据库</span>
+    <span class="chip">导出即是网页</span>
+  </div>
+
+  <div class="hero-window">
+    <div class="window">
+      <div class="window-bar">
+        <span class="dot a"></span><span class="dot b"></span><span class="dot c"></span>
+        <span class="addr">localhost:5001/editor</span>
+      </div>
+      <img src="assets/editor.png" alt="QIAN-PPT 编辑器界面：左侧幻灯片列表，中间画布，右侧属性面板" width="1912" height="922">
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat reveal"><b>17</b><span>排版组件</span></div>
+    <div class="stat reveal" style="--d:.08s"><b>14</b><span>3D 元素</span></div>
+    <div class="stat reveal" style="--d:.16s"><b>11</b><span>动画预设</span></div>
+    <div class="stat reveal" style="--d:.24s"><b>30+</b><span>CLI 命令</span></div>
+  </div>
+</section>
+
+<!-- ======================= MARQUEE ======================= -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track" id="mqTrack">
+    <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
+    <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
+  </div>
+</div>
+
+<!-- ======================= PHILOSOPHY ======================= -->
+<section class="section wrap philo">
+  <div class="sec-head reveal">
+    <span class="sec-label">理念 PHILOSOPHY</span><span class="sec-line"></span><span class="sec-num">01</span>
+  </div>
+  <p class="big reveal">AI 做擅长的<em>批量生成</em>，<br>人做擅长的<em>审美判断</em>。</p>
+  <p class="small reveal" style="--d:.12s">用 JSON + HTML 取代二进制 .pptx，让每一页幻灯片既能被 AI 读懂和改写，也能被人随时精修 —— 而不是在「一键生成」的结果里妥协。</p>
+</section>
+
+<!-- ======================= FEATURES ======================= -->
+<section class="section wrap" id="features" style="padding-top:0">
+  <div class="sec-head reveal">
+    <span class="sec-label">功能 FEATURES</span><span class="sec-line"></span><span class="sec-num">02</span>
+  </div>
+  <div class="feat-grid">
+    <article class="feat reveal">
+      <span class="num">01</span><span class="arrow">↗</span>
+      <h3>Agent 一键生成</h3>
+      <p>把文档或截图发给 Agent，分钟级产出初稿。兼容 Claude Code、Trae、Cursor 等主流 AI 工具。</p>
+    </article>
+    <article class="feat reveal" style="--d:.08s">
+      <span class="num">02</span><span class="arrow">↗</span>
+      <h3>可视化自由编辑</h3>
+      <p>完整的 Web 编辑器，双向实时同步 —— AI 改的每一笔即时可见，且都能逐条撤销。</p>
+    </article>
+    <article class="feat reveal" style="--d:.16s">
+      <span class="num">03</span><span class="arrow">↗</span>
+      <h3>组件 · 3D · 动画</h3>
+      <p>17 个杂志风排版组件、14 种 Three.js 3D 元素、11 种动画预设，表现力不受模板限制。</p>
+    </article>
+    <article class="feat reveal" style="--d:.24s">
+      <span class="num">04</span><span class="arrow">↗</span>
+      <h3>导出独立 HTML</h3>
+      <p>一键导出自包含网页，双击即可全屏演示分享 —— 不需要服务器，也不锁定任何平台。</p>
+    </article>
+  </div>
+</section>
+
+<!-- ======================= SHOWCASE ======================= -->
+<section class="section wrap" id="showcase" style="padding-top:0">
+  <div class="sec-head reveal">
+    <span class="sec-label">样片 SHOWCASE</span><span class="sec-line"></span>
+    <span class="show-hint">点击任意窗口，放大查看 ↗</span>
+  </div>
+
+  <div class="show-grid">
+    <!-- live deck -->
+    <div class="show-card show-live-a reveal" data-lb="iframe" data-src="demo/" data-cap="演示稿 · 产品介绍 — 方向键 / 空格翻页，点击遮罩或 × 关闭">
+      <div class="thumb">
+        <span class="badge-live"><i></i>LIVE · 可播放</span>
+        <div class="preview-frame" data-frame="demo/"></div>
+        <div class="veil"><span class="pill">点击播放 ↗</span></div>
+      </div>
+      <div class="show-meta"><b>演示稿：产品介绍</b><span>7 页 · 真实放映</span></div>
+    </div>
+
+    <!-- live editor -->
+    <div class="show-card show-live-b reveal" style="--d:.1s" data-lb="iframe" data-src="playground/" data-cap="编辑器体验版 · 无需安装，浏览器里直接编辑，点击遮罩或 × 关闭">
+      <div class="thumb">
+        <span class="badge-live"><i></i>LIVE · 可编辑</span>
+        <div class="preview-frame" data-frame="playground/"></div>
+        <div class="veil"><span class="pill">点击体验 ↗</span></div>
+      </div>
+      <div class="show-meta"><b>编辑器体验版</b><span>免安装 · 打开即改</span></div>
+    </div>
+
+    <!-- images -->
+    <div class="show-card show-img reveal" data-lb="img" data-src="assets/deck-overview.png" data-cap="全稿总览 · 一键纵览所有页面">
+      <div class="thumb"><img src="assets/deck-overview.png" alt="全稿总览" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="show-meta"><b>全稿总览</b><span>OVERVIEW</span></div>
+    </div>
+    <div class="show-card show-img reveal" style="--d:.08s" data-lb="img" data-src="assets/components.png" data-cap="组件库 · 17 个内置排版组件，即插即用">
+      <div class="thumb"><img src="assets/components.png" alt="组件库" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="show-meta"><b>组件库</b><span>COMPONENTS</span></div>
+    </div>
+    <div class="show-card show-img reveal" style="--d:.16s" data-lb="img" data-src="assets/ai-restore.png" data-cap="AI 截图还原 · 发一张图，Agent 在画布上高保真重建">
+      <div class="thumb"><img src="assets/ai-restore.png" alt="AI 截图还原" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="show-meta"><b>AI 截图还原</b><span>HUMAN × AI</span></div>
+    </div>
+    <div class="show-card show-img reveal" style="--d:.24s" data-lb="img" data-src="assets/presentation.png" data-cap="全屏放映 · 键盘导航，3D 元素自动播放">
+      <div class="thumb"><img src="assets/presentation.png" alt="全屏放映" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="show-meta"><b>全屏放映</b><span>PRESENT</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================= FOOTER ======================= -->
+<footer>
+  <div class="wrap">
+    <div class="foot-top reveal">
+      <div class="foot-brand"><span class="brand-mark">Q</span>QIAN-PPT</div>
+      <nav class="foot-links">
+        <a href="https://github.com/favoroo/qian-ppt" target="_blank" rel="noopener">GitHub ↗</a>
+        <a href="playground/" target="_blank" rel="noopener">在线演示 ↗</a>
+        <a href="#top">回到顶部 ↑</a>
+      </nav>
+    </div>
+    <div class="foot-note reveal" style="--d:.1s">
+      <span>Agent 生成 × 人工自由编辑</span>
+      <span>© <span id="year">2026</span> QIAN-PPT · MIT License</span>
+    </div>
+  </div>
+  <div class="foot-mark" aria-hidden="true">QIAN-PPT</div>
+</footer>
+
+<!-- ======================= LIGHTBOX ======================= -->
+<div class="lb" id="lb" role="dialog" aria-modal="true">
+  <div class="lb-bg" id="lbBg"></div>
+  <div class="lb-panel" id="lbPanel">
+    <button class="lb-close" id="lbClose" aria-label="关闭">×</button>
+    <div id="lbContent"></div>
+    <div class="lb-cap" id="lbCap"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* nav scroll state */
+  var nav = document.getElementById('nav');
+  function onScroll(){ nav.classList.toggle('scrolled', window.scrollY > 8); }
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  /* reveal on scroll */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold:.12, rootMargin:'0px 0px -6% 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+
+  /* scaled live previews: fit a 1440px-wide iframe into its container */
+  var FRAME_W = 1440;
+  var frames = [];
+  document.querySelectorAll('.preview-frame').forEach(function(box){
+    var iframe = document.createElement('iframe');
+    iframe.setAttribute('loading','lazy');
+    iframe.setAttribute('scrolling','no');
+    iframe.setAttribute('tabindex','-1');
+    iframe.setAttribute('title','预览');
+    iframe.src = box.getAttribute('data-frame');
+    box.appendChild(iframe);
+    frames.push({box:box, iframe:iframe});
+  });
+  function fit(){
+    frames.forEach(function(f){
+      var w = f.box.clientWidth, h = f.box.clientHeight;
+      if(!w || !h) return;
+      var s = w / FRAME_W;
+      f.iframe.style.transform = 'scale(' + s + ')';
+      f.iframe.style.height = (h / s) + 'px';
+    });
+  }
+  window.addEventListener('resize', fit);
+  fit();
+  /* re-fit once fonts/iframes settle */
+  setTimeout(fit, 600);
+
+  /* lightbox */
+  var lb = document.getElementById('lb'),
+      panel = document.getElementById('lbPanel'),
+      content = document.getElementById('lbContent'),
+      cap = document.getElementById('lbCap');
+
+  function openLb(type, src, caption){
+    content.innerHTML = '';
+    var node;
+    if(type === 'iframe'){
+      node = document.createElement('iframe');
+      node.src = src;
+      node.setAttribute('allow','fullscreen');
+    }else{
+      node = document.createElement('img');
+      node.src = src;
+      node.alt = caption || '';
+    }
+    content.appendChild(node);
+    cap.textContent = caption || '';
+    lb.classList.add('open');
+    document.body.classList.add('lb-lock');
+  }
+  function closeLb(){
+    lb.classList.remove('open');
+    document.body.classList.remove('lb-lock');
+    setTimeout(function(){ content.innerHTML = ''; }, 380); /* stop iframes after fade-out */
+  }
+  document.addEventListener('click', function(e){
+    var card = e.target.closest('[data-lb]');
+    if(card){
+      openLb(card.getAttribute('data-lb'), card.getAttribute('data-src'), card.getAttribute('data-cap'));
+      return;
+    }
+    if(e.target.id === 'lbBg' || e.target.closest('#lbClose')) closeLb();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && lb.classList.contains('open')) closeLb();
+  });
+
+  /* footer year */
+  document.getElementById('year').textContent = new Date().getFullYear();
+})();
+</script>
+</body>
+</html>
