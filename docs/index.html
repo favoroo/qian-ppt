@@ -593,15 +593,22 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   var lb = document.getElementById('lb'),
       panel = document.getElementById('lbPanel'),
       content = document.getElementById('lbContent'),
-      cap = document.getElementById('lbCap');
+      cap = document.getElementById('lbCap'),
+      lastFocus = null;
 
   function openLb(type, src, caption){
+    lastFocus = document.activeElement;
     content.innerHTML = '';
     var node;
     if(type === 'iframe'){
       node = document.createElement('iframe');
       node.src = src;
       node.setAttribute('allow','fullscreen');
+      /* keyboard events only reach the iframe once it owns focus — refocus after load
+         in case navigation resets it, so 方向键 works immediately */
+      node.addEventListener('load', function(){
+        try{ node.contentWindow.focus(); }catch(_){/* cross-origin */}
+      });
     }else{
       node = document.createElement('img');
       node.src = src;
@@ -611,11 +618,13 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     cap.textContent = caption || '';
     lb.classList.add('open');
     document.body.classList.add('lb-lock');
+    node.focus();
   }
   function closeLb(){
     lb.classList.remove('open');
     document.body.classList.remove('lb-lock');
     setTimeout(function(){ content.innerHTML = ''; }, 380); /* stop iframes after fade-out */
+    if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(_){} }
   }
   document.addEventListener('click', function(e){
     var card = e.target.closest('[data-lb]');
