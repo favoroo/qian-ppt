@@ -728,6 +728,19 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   }
 
   /* fullscreen stage: covers the whole page; goes true-OS-fullscreen when the API allows */
+  var fsFocusTimer = null;
+  /* keep pushing focus into the deck iframe until it verifiably has it — the fullscreen
+     transition resets focus to the stage container, so a single focus() call races */
+  function focusStageIframe(n){
+    var ifr = fsContent.querySelector('iframe');
+    if(!ifr) return;
+    var innerFocused = false;
+    try{ innerFocused = ifr.contentDocument && ifr.contentDocument.hasFocus(); }catch(_){/* cross-origin */}
+    if(innerFocused) return;
+    try{ ifr.contentWindow.focus(); }catch(_){/* cross-origin */}
+    ifr.focus();
+    if(n < 12) fsFocusTimer = setTimeout(function(){ focusStageIframe(n + 1); }, 250);
+  }
   function openStage(src, trigger){
     fsReturnFocus = trigger || document.activeElement;
     fsContent.innerHTML = '';
@@ -735,19 +748,21 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     ifr.src = src;
     ifr.setAttribute('allow','fullscreen');
     ifr.addEventListener('load', function(){
-      try{ ifr.contentWindow.focus(); }catch(_){/* cross-origin */}
       fsProg.done();
+      clearTimeout(fsFocusTimer);
+      focusStageIframe(0);
     });
     fsContent.appendChild(ifr);
     fsStage.hidden = false;
     document.body.classList.add('lb-lock');
-    ifr.focus();
     fsProg.start();
+    focusStageIframe(0);
     var req = fsStage.requestFullscreen || fsStage.webkitRequestFullscreen;
     if(req){ try{ var p = req.call(fsStage); if(p && p.catch) p.catch(function(){}); }catch(_){} }
   }
   function closeStage(){
     fsProg.stop();
+    clearTimeout(fsFocusTimer);
     fsStage.hidden = true;
     fsContent.innerHTML = '';
     document.body.classList.remove('lb-lock');
@@ -757,9 +772,12 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     }
     if(fsReturnFocus && fsReturnFocus.focus){ try{ fsReturnFocus.focus(); }catch(_){} }
   }
-  /* native fullscreen is an enhancement layered on the always-present page-covering
-     stage — never tear the stage down when the OS fullscreen exits (ESC), the overlay
-     stays until the user closes it with × / ESC */
+  /* after the fullscreen transition settles, make sure the deck owns focus again */
+  function onFsChange(){
+    if(!fsStage.hidden){ clearTimeout(fsFocusTimer); focusStageIframe(0); }
+  }
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
 
   document.addEventListener('click', function(e){
     var fsBtn = e.target.closest('[data-fs]');
