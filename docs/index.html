@@ -300,6 +300,47 @@ img{display:block;max-width:100%;height:auto}
 }
 .lb-progress.on{opacity:1}
 .lb-progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
+.lb-fs{
+  position:absolute;top:-14px;right:44px;z-index:3;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--paper);border:1.5px solid var(--ink);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;
+  transition:transform .25s var(--ease),background .2s;
+}
+.lb-fs:hover{transform:rotate(90deg);background:var(--accent)}
+.lb-fs svg{width:17px;height:17px}
+.lb-fs[hidden]{display:none}
+
+/* fullscreen stage */
+.fs-stage{position:fixed;inset:0;z-index:100;background:#0a0a0a}
+.fs-stage[hidden]{display:none}
+#fsContent{position:absolute;inset:0}
+#fsContent iframe{width:100%;height:100%;border:0;display:block;background:#fff}
+.fs-stage .lb-progress{left:0;right:0;border-radius:0;z-index:4}
+.fs-exit{
+  position:absolute;top:18px;right:18px;z-index:5;
+  width:46px;height:46px;border-radius:50%;
+  background:rgba(250,250,248,.14);border:1.5px solid rgba(250,250,248,.65);color:#fafaf8;
+  font-size:22px;font-family:var(--mono);cursor:pointer;line-height:1;
+  display:grid;place-items:center;
+  transition:transform .25s var(--ease),background .2s;
+}
+.fs-exit:hover{transform:rotate(90deg);background:rgba(197,232,3,.92);color:var(--ink);border-color:var(--ink)}
+
+/* fullscreen trigger on live cards */
+.fs-btn{
+  position:absolute;top:14px;right:14px;z-index:4;
+  width:34px;height:34px;border-radius:9px;
+  display:grid;place-items:center;
+  background:rgba(250,250,248,.94);border:1.5px solid var(--ink);color:var(--ink);
+  cursor:pointer;
+  opacity:0;transform:translateY(-4px);
+  transition:opacity .25s,transform .3s var(--ease),background .2s;
+}
+.show-card:hover .fs-btn,.fs-btn:focus-visible{opacity:1;transform:none}
+.fs-btn:hover{background:var(--accent)}
+.fs-btn svg{width:15px;height:15px}
+@media (hover:none){.fs-btn{opacity:1;transform:none}}
 .lb-close{
   position:absolute;top:-14px;right:-14px;z-index:3;
   width:44px;height:44px;border-radius:50%;
@@ -349,6 +390,7 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   .show-img .thumb{height:200px}
   .lb-panel iframe{height:72vh}
   .lb-close{top:8px;right:8px;width:38px;height:38px}
+  .lb-fs{top:8px;right:56px;width:38px;height:38px}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
@@ -474,6 +516,7 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     <div class="show-card show-live-a reveal" data-lb="iframe" data-src="demo/" data-cap="演示稿 · 产品介绍 — 方向键 / 空格翻页，点击遮罩或 × 关闭">
       <div class="thumb">
         <span class="badge-live"><i></i>LIVE · 可播放</span>
+        <button class="fs-btn" data-fs="demo/" aria-label="全屏放映" title="全屏放映"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
         <div class="preview-frame" data-frame="demo/"></div>
         <div class="veil"></div>
       </div>
@@ -484,6 +527,7 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     <div class="show-card show-live-b reveal" style="--d:.1s" data-lb="iframe" data-src="playground/" data-cap="编辑器体验版 · 无需安装，浏览器里直接编辑，点击遮罩或 × 关闭">
       <div class="thumb">
         <span class="badge-live"><i></i>LIVE · 可编辑</span>
+        <button class="fs-btn" data-fs="playground/" aria-label="全屏体验" title="全屏体验"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
         <div class="preview-frame" data-frame="playground/"></div>
         <div class="veil"></div>
       </div>
@@ -536,9 +580,17 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   <div class="lb-bg" id="lbBg"></div>
   <div class="lb-panel" id="lbPanel">
     <div class="lb-progress" id="lbProgress"><i></i></div>
+    <button class="lb-fs" id="lbFs" aria-label="全屏" title="全屏" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="lb-close" id="lbClose" aria-label="关闭">×</button>
     <div id="lbContent"></div>
   </div>
+</div>
+
+<!-- fullscreen stage: covers the whole page, or the whole OS screen via the Fullscreen API -->
+<div class="fs-stage" id="fsStage" hidden>
+  <div class="lb-progress" id="fsProgress"><i></i></div>
+  <button class="fs-exit" id="fsExit" aria-label="退出全屏" title="退出全屏（ESC）">×</button>
+  <div id="fsContent"></div>
 </div>
 
 <script>
@@ -591,47 +643,53 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
       panel = document.getElementById('lbPanel'),
       content = document.getElementById('lbContent'),
       lastFocus = null;
+  var fsStage = document.getElementById('fsStage'),
+      fsContent = document.getElementById('fsContent'),
+      fsReturnFocus = null;
 
-  /* loading progress for lightbox content */
-  var prog = document.getElementById('lbProgress'),
-      progBar = prog.querySelector('i'),
-      progTimer = null, progSafety = null, progVal = 0;
-  function progStart(){
-    progStop();
-    progVal = 4;
-    progBar.style.width = '4%';
-    prog.classList.add('on');
-    progTimer = setInterval(function(){
-      try{
-        var ifr = content.querySelector('iframe');
-        if(ifr && ifr.contentDocument){ /* same-origin: real readyState checkpoints */
-          var rs = ifr.contentDocument.readyState;
-          if(rs === 'complete') progVal = 100;
-          else if(rs === 'interactive') progVal = Math.max(progVal, 60);
-        }
-      }catch(_){/* cross-origin */}
-      if(progVal < 90) progVal = Math.min(90, progVal + Math.max(.5, (90 - progVal) * .07));
-      progBar.style.width = progVal + '%';
-      if(progVal >= 100) progDone();
-    }, 120);
-    progSafety = setTimeout(progDone, 20000); /* never hang the bar */
+  /* loading progress bar: real readyState checkpoints (same-origin) + asymptotic fill */
+  function makeProgress(el, getSource){
+    var fill = el.querySelector('i'), timer = null, safety = null, val = 0;
+    function done(){
+      if(!timer) return;
+      clearInterval(timer); timer = null;
+      clearTimeout(safety);
+      fill.style.width = '100%';
+      setTimeout(function(){
+        el.classList.remove('on');
+        setTimeout(function(){ fill.style.width = '0%'; }, 300);
+      }, 200);
+    }
+    function start(){
+      stop();
+      val = 4;
+      fill.style.width = '4%';
+      el.classList.add('on');
+      timer = setInterval(function(){
+        try{
+          var ifr = getSource();
+          if(ifr && ifr.contentDocument){
+            var rs = ifr.contentDocument.readyState;
+            if(rs === 'complete') val = 100;
+            else if(rs === 'interactive') val = Math.max(val, 60);
+          }
+        }catch(_){/* cross-origin */}
+        if(val < 90) val = Math.min(90, val + Math.max(.5, (90 - val) * .07));
+        fill.style.width = val + '%';
+        if(val >= 100) done();
+      }, 120);
+      safety = setTimeout(done, 20000); /* never hang the bar */
+    }
+    function stop(){
+      if(timer){ clearInterval(timer); timer = null; }
+      clearTimeout(safety);
+      el.classList.remove('on');
+      fill.style.width = '0%';
+    }
+    return {start:start, done:done, stop:stop};
   }
-  function progDone(){
-    if(!progTimer) return;
-    clearInterval(progTimer); progTimer = null;
-    clearTimeout(progSafety);
-    progBar.style.width = '100%';
-    setTimeout(function(){
-      prog.classList.remove('on');
-      setTimeout(function(){ progBar.style.width = '0%'; }, 300);
-    }, 200);
-  }
-  function progStop(){
-    if(progTimer){ clearInterval(progTimer); progTimer = null; }
-    clearTimeout(progSafety);
-    prog.classList.remove('on');
-    progBar.style.width = '0%';
-  }
+  var lbProg = makeProgress(document.getElementById('lbProgress'), function(){ return content.querySelector('iframe'); });
+  var fsProg = makeProgress(document.getElementById('fsProgress'), function(){ return fsContent.querySelector('iframe'); });
 
   function openLb(type, src, caption){
     lastFocus = document.activeElement;
@@ -645,29 +703,75 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
          in case navigation resets it, so 方向键 works immediately */
       node.addEventListener('load', function(){
         try{ node.contentWindow.focus(); }catch(_){/* cross-origin */}
-        progDone();
+        lbProg.done();
       });
     }else{
       node = document.createElement('img');
       node.src = src;
       node.alt = caption || '';
-      node.onload = progDone;
-      node.onerror = progDone;
+      node.onload = lbProg.done;
+      node.onerror = lbProg.done;
     }
     content.appendChild(node);
+    document.getElementById('lbFs').hidden = (type !== 'iframe');
     lb.classList.add('open');
     document.body.classList.add('lb-lock');
     node.focus();
-    progStart();
+    lbProg.start();
   }
   function closeLb(){
-    progStop();
+    lbProg.stop();
     lb.classList.remove('open');
     document.body.classList.remove('lb-lock');
     setTimeout(function(){ content.innerHTML = ''; }, 380); /* stop iframes after fade-out */
     if(lastFocus && lastFocus.focus){ try{ lastFocus.focus(); }catch(_){} }
   }
+
+  /* fullscreen stage: covers the whole page; goes true-OS-fullscreen when the API allows */
+  function openStage(src, trigger){
+    fsReturnFocus = trigger || document.activeElement;
+    fsContent.innerHTML = '';
+    var ifr = document.createElement('iframe');
+    ifr.src = src;
+    ifr.setAttribute('allow','fullscreen');
+    ifr.addEventListener('load', function(){
+      try{ ifr.contentWindow.focus(); }catch(_){/* cross-origin */}
+      fsProg.done();
+    });
+    fsContent.appendChild(ifr);
+    fsStage.hidden = false;
+    document.body.classList.add('lb-lock');
+    ifr.focus();
+    fsProg.start();
+    var req = fsStage.requestFullscreen || fsStage.webkitRequestFullscreen;
+    if(req){ try{ var p = req.call(fsStage); if(p && p.catch) p.catch(function(){}); }catch(_){} }
+  }
+  function closeStage(){
+    fsProg.stop();
+    fsStage.hidden = true;
+    fsContent.innerHTML = '';
+    document.body.classList.remove('lb-lock');
+    var exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if((document.fullscreenElement || document.webkitFullscreenElement) && exit){
+      try{ var p = exit.call(document); if(p && p.catch) p.catch(function(){}); }catch(_){}
+    }
+    if(fsReturnFocus && fsReturnFocus.focus){ try{ fsReturnFocus.focus(); }catch(_){} }
+  }
+  /* native fullscreen is an enhancement layered on the always-present page-covering
+     stage — never tear the stage down when the OS fullscreen exits (ESC), the overlay
+     stays until the user closes it with × / ESC */
+
   document.addEventListener('click', function(e){
+    var fsBtn = e.target.closest('[data-fs]');
+    if(fsBtn){ openStage(fsBtn.getAttribute('data-fs'), fsBtn); return; }
+    if(e.target.closest('#lbFs')){
+      var ifr = content.querySelector('iframe');
+      if(ifr){
+        var req = ifr.requestFullscreen || ifr.webkitRequestFullscreen;
+        if(req){ try{ var p = req.call(ifr); if(p && p.catch) p.catch(function(){}); }catch(_){} }
+      }
+      return;
+    }
     var card = e.target.closest('[data-lb]');
     if(card){
       openLb(card.getAttribute('data-lb'), card.getAttribute('data-src'), card.getAttribute('data-cap'));
@@ -675,12 +779,17 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     }
     var ext = e.target.closest('[data-href]');
     if(ext){ window.open(ext.getAttribute('data-href'), '_blank', 'noopener'); return; }
-    if(e.target.id === 'lbBg' || e.target.closest('#lbClose')) closeLb();
+    if(e.target.closest('#lbClose') || e.target.id === 'lbBg'){ closeLb(); return; }
+    if(e.target.closest('#fsExit')){ closeStage(); return; }
   });
   document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && lb.classList.contains('open')) closeLb();
+    if(e.key === 'Escape'){
+      if(!fsStage.hidden){ closeStage(); return; }
+      if(lb.classList.contains('open')) closeLb();
+      return;
+    }
     if((e.key === 'Enter' || e.key === ' ') && document.activeElement &&
-       document.activeElement.matches && document.activeElement.matches('[data-lb],[data-href]')){
+       document.activeElement.matches && document.activeElement.matches('[data-lb],[data-href],[data-fs]')){
       e.preventDefault();
       document.activeElement.click();
     }
