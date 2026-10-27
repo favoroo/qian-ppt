@@ -205,7 +205,7 @@ img{display:block;max-width:100%;height:auto}
   border:1.5px solid var(--hair);border-radius:14px;
   padding:clamp(26px,3.4vw,42px);
   transition:transform .35s var(--ease),border-color .35s,box-shadow .35s;
-  overflow:hidden;
+  overflow:hidden;cursor:pointer;
 }
 .feat:hover{transform:translateY(-5px);border-color:var(--ink);box-shadow:0 24px 50px -28px rgba(10,10,10,.3)}
 .feat .num{
@@ -222,6 +222,7 @@ img{display:block;max-width:100%;height:auto}
   transition:opacity .3s,transform .35s var(--ease);
 }
 .feat:hover .arrow{opacity:1;transform:none}
+.feat:focus-visible,.show-card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 
 /* ---------- showcase ---------- */
 .show-grid{
@@ -441,22 +442,22 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
     <span class="sec-label">功能 FEATURES</span><span class="sec-line"></span><span class="sec-num">02</span>
   </div>
   <div class="feat-grid">
-    <article class="feat reveal">
+    <article class="feat reveal" data-href="https://github.com/favoroo/qian-ppt#readme" tabindex="0" aria-label="在 GitHub 查看文档：Agent 一键生成">
       <span class="num">01</span><span class="arrow">↗</span>
       <h3>Agent 一键生成</h3>
       <p>把文档或截图发给 Agent，分钟级产出初稿。兼容 Claude Code、Trae、Cursor 等主流 AI 工具。</p>
     </article>
-    <article class="feat reveal" style="--d:.08s">
+    <article class="feat reveal" style="--d:.08s" data-lb="iframe" data-src="playground/" data-cap="编辑器体验版 · 无需安装，浏览器里直接编辑" tabindex="0" aria-label="打开编辑器体验版">
       <span class="num">02</span><span class="arrow">↗</span>
       <h3>可视化自由编辑</h3>
       <p>完整的 Web 编辑器，双向实时同步 —— AI 改的每一笔即时可见，且都能逐条撤销。</p>
     </article>
-    <article class="feat reveal" style="--d:.16s">
+    <article class="feat reveal" style="--d:.16s" data-lb="img" data-src="assets/components.png" data-cap="组件库 · 17 个内置排版组件，即插即用" tabindex="0" aria-label="查看组件库截图">
       <span class="num">03</span><span class="arrow">↗</span>
       <h3>组件 · 3D · 动画</h3>
       <p>17 个杂志风排版组件、14 种 Three.js 3D 元素、11 种动画预设，表现力不受模板限制。</p>
     </article>
-    <article class="feat reveal" style="--d:.24s">
+    <article class="feat reveal" style="--d:.24s" data-lb="iframe" data-src="demo/" data-cap="导出的独立 HTML · 正是这样导出的演示稿，可全屏放映" tabindex="0" aria-label="查看导出的独立 HTML 演示稿">
       <span class="num">04</span><span class="arrow">↗</span>
       <h3>导出独立 HTML</h3>
       <p>一键导出自包含网页，双击即可全屏演示分享 —— 不需要服务器，也不锁定任何平台。</p>
@@ -622,10 +623,17 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
       openLb(card.getAttribute('data-lb'), card.getAttribute('data-src'), card.getAttribute('data-cap'));
       return;
     }
+    var ext = e.target.closest('[data-href]');
+    if(ext){ window.open(ext.getAttribute('data-href'), '_blank', 'noopener'); return; }
     if(e.target.id === 'lbBg' || e.target.closest('#lbClose')) closeLb();
   });
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && lb.classList.contains('open')) closeLb();
+    if((e.key === 'Enter' || e.key === ' ') && document.activeElement &&
+       document.activeElement.matches && document.activeElement.matches('[data-lb],[data-href]')){
+      e.preventDefault();
+      document.activeElement.click();
+    }
   });
 
   /* marquee: top up phrase units so both identical halves always cover the viewport — seamless -50% loop */
