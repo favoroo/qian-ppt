@@ -250,16 +250,10 @@ img{display:block;max-width:100%;height:auto}
 }
 .thumb .veil{
   position:absolute;inset:0;z-index:2;
-  display:flex;align-items:flex-end;justify-content:flex-end;padding:16px;
-  background:linear-gradient(to top,rgba(10,10,10,.28),transparent 42%);
+  background:linear-gradient(to top,rgba(10,10,10,.22),transparent 42%);
   opacity:0;transition:opacity .35s;
 }
 .show-card:hover .veil{opacity:1}
-.veil .pill{
-  font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.06em;
-  background:var(--accent);border:1.5px solid var(--ink);border-radius:999px;
-  padding:8px 18px;color:var(--ink);
-}
 .badge-live{
   position:absolute;top:14px;left:14px;z-index:3;
   display:inline-flex;align-items:center;gap:7px;
@@ -299,10 +293,13 @@ img{display:block;max-width:100%;height:auto}
   max-width:min(1300px,93vw);max-height:80vh;width:auto;height:auto;
   border:1.5px solid var(--ink);border-radius:12px;background:#fff;
 }
-.lb-cap{
-  position:absolute;left:2px;bottom:-34px;
-  font-family:var(--mono);font-size:13px;color:rgba(250,250,248,.85);letter-spacing:.05em;
+.lb-progress{
+  position:absolute;top:0;left:1.5px;right:1.5px;height:4px;z-index:3;
+  border-radius:12px 12px 0 0;overflow:hidden;
+  background:rgba(10,10,10,.06);opacity:0;transition:opacity .3s;
 }
+.lb-progress.on{opacity:1}
+.lb-progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
 .lb-close{
   position:absolute;top:-14px;right:-14px;z-index:3;
   width:44px;height:44px;border-radius:50%;
@@ -478,7 +475,7 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
       <div class="thumb">
         <span class="badge-live"><i></i>LIVE · 可播放</span>
         <div class="preview-frame" data-frame="demo/"></div>
-        <div class="veil"><span class="pill">点击播放 ↗</span></div>
+        <div class="veil"></div>
       </div>
       <div class="show-meta"><b>演示稿：产品介绍</b><span>7 页 · 真实放映</span></div>
     </div>
@@ -488,26 +485,26 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
       <div class="thumb">
         <span class="badge-live"><i></i>LIVE · 可编辑</span>
         <div class="preview-frame" data-frame="playground/"></div>
-        <div class="veil"><span class="pill">点击体验 ↗</span></div>
+        <div class="veil"></div>
       </div>
       <div class="show-meta"><b>编辑器体验版</b><span>免安装 · 打开即改</span></div>
     </div>
 
     <!-- images -->
     <div class="show-card show-img reveal" data-lb="img" data-src="assets/deck-overview.png" data-cap="全稿总览 · 一键纵览所有页面">
-      <div class="thumb"><img src="assets/deck-overview.png" alt="全稿总览" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="thumb"><img src="assets/deck-overview.png" alt="全稿总览" loading="lazy"><div class="veil"></div></div>
       <div class="show-meta"><b>全稿总览</b><span>OVERVIEW</span></div>
     </div>
     <div class="show-card show-img reveal" style="--d:.08s" data-lb="img" data-src="assets/components.png" data-cap="组件库 · 17 个内置排版组件，即插即用">
-      <div class="thumb"><img src="assets/components.png" alt="组件库" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="thumb"><img src="assets/components.png" alt="组件库" loading="lazy"><div class="veil"></div></div>
       <div class="show-meta"><b>组件库</b><span>COMPONENTS</span></div>
     </div>
     <div class="show-card show-img reveal" style="--d:.16s" data-lb="img" data-src="assets/ai-restore.png" data-cap="AI 截图还原 · 发一张图，Agent 在画布上高保真重建">
-      <div class="thumb"><img src="assets/ai-restore.png" alt="AI 截图还原" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="thumb"><img src="assets/ai-restore.png" alt="AI 截图还原" loading="lazy"><div class="veil"></div></div>
       <div class="show-meta"><b>AI 截图还原</b><span>HUMAN × AI</span></div>
     </div>
     <div class="show-card show-img reveal" style="--d:.24s" data-lb="img" data-src="assets/presentation.png" data-cap="全屏放映 · 键盘导航，3D 元素自动播放">
-      <div class="thumb"><img src="assets/presentation.png" alt="全屏放映" loading="lazy"><div class="veil"><span class="pill">放大 ↗</span></div></div>
+      <div class="thumb"><img src="assets/presentation.png" alt="全屏放映" loading="lazy"><div class="veil"></div></div>
       <div class="show-meta"><b>全屏放映</b><span>PRESENT</span></div>
     </div>
   </div>
@@ -538,9 +535,9 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
 <div class="lb" id="lb" role="dialog" aria-modal="true">
   <div class="lb-bg" id="lbBg"></div>
   <div class="lb-panel" id="lbPanel">
+    <div class="lb-progress" id="lbProgress"><i></i></div>
     <button class="lb-close" id="lbClose" aria-label="关闭">×</button>
     <div id="lbContent"></div>
-    <div class="lb-cap" id="lbCap"></div>
   </div>
 </div>
 
@@ -593,8 +590,48 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   var lb = document.getElementById('lb'),
       panel = document.getElementById('lbPanel'),
       content = document.getElementById('lbContent'),
-      cap = document.getElementById('lbCap'),
       lastFocus = null;
+
+  /* loading progress for lightbox content */
+  var prog = document.getElementById('lbProgress'),
+      progBar = prog.querySelector('i'),
+      progTimer = null, progSafety = null, progVal = 0;
+  function progStart(){
+    progStop();
+    progVal = 4;
+    progBar.style.width = '4%';
+    prog.classList.add('on');
+    progTimer = setInterval(function(){
+      try{
+        var ifr = content.querySelector('iframe');
+        if(ifr && ifr.contentDocument){ /* same-origin: real readyState checkpoints */
+          var rs = ifr.contentDocument.readyState;
+          if(rs === 'complete') progVal = 100;
+          else if(rs === 'interactive') progVal = Math.max(progVal, 60);
+        }
+      }catch(_){/* cross-origin */}
+      if(progVal < 90) progVal = Math.min(90, progVal + Math.max(.5, (90 - progVal) * .07));
+      progBar.style.width = progVal + '%';
+      if(progVal >= 100) progDone();
+    }, 120);
+    progSafety = setTimeout(progDone, 20000); /* never hang the bar */
+  }
+  function progDone(){
+    if(!progTimer) return;
+    clearInterval(progTimer); progTimer = null;
+    clearTimeout(progSafety);
+    progBar.style.width = '100%';
+    setTimeout(function(){
+      prog.classList.remove('on');
+      setTimeout(function(){ progBar.style.width = '0%'; }, 300);
+    }, 200);
+  }
+  function progStop(){
+    if(progTimer){ clearInterval(progTimer); progTimer = null; }
+    clearTimeout(progSafety);
+    prog.classList.remove('on');
+    progBar.style.width = '0%';
+  }
 
   function openLb(type, src, caption){
     lastFocus = document.activeElement;
@@ -608,19 +645,23 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
          in case navigation resets it, so 方向键 works immediately */
       node.addEventListener('load', function(){
         try{ node.contentWindow.focus(); }catch(_){/* cross-origin */}
+        progDone();
       });
     }else{
       node = document.createElement('img');
       node.src = src;
       node.alt = caption || '';
+      node.onload = progDone;
+      node.onerror = progDone;
     }
     content.appendChild(node);
-    cap.textContent = caption || '';
     lb.classList.add('open');
     document.body.classList.add('lb-lock');
     node.focus();
+    progStart();
   }
   function closeLb(){
+    progStop();
     lb.classList.remove('open');
     document.body.classList.remove('lb-lock');
     setTimeout(function(){ content.innerHTML = ''; }, 380); /* stop iframes after fade-out */
