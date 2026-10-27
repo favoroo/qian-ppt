@@ -421,6 +421,8 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   <div class="marquee-track" id="mqTrack">
     <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
     <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
+    <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
+    <span>AGENT 生成 × 人工精修 × 开源开放 × 实时同步 × JSON 驱动 × 导出即网页 ×&nbsp;</span>
   </div>
 </div>
 
@@ -625,6 +627,21 @@ footer{border-top:1.5px solid var(--ink);padding:clamp(44px,6vw,72px) 0 0;overfl
   document.addEventListener('keydown', function(e){
     if(e.key === 'Escape' && lb.classList.contains('open')) closeLb();
   });
+
+  /* marquee: top up phrase units so both identical halves always cover the viewport — seamless -50% loop */
+  var mqTrack = document.getElementById('mqTrack');
+  function buildMarquee(){
+    var unit = mqTrack.children[0];
+    var uw = unit.getBoundingClientRect().width;
+    var vw = document.documentElement.clientWidth;
+    if(!uw || !vw) return;
+    var need = Math.max(4, Math.ceil(vw / uw) * 2); /* even count, each half >= viewport */
+    while(mqTrack.children.length < need) mqTrack.appendChild(unit.cloneNode(true));
+  }
+  buildMarquee();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(buildMarquee);
+  var rzT;
+  window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(buildMarquee, 150); });
 
   /* footer year */
   document.getElementById('year').textContent = new Date().getFullYear();
